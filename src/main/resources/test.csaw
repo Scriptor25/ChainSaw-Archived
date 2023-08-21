@@ -34,7 +34,7 @@ main: int {
     helloWorld();
     print("fib(10) = %d\n", fib(10));
 
-    return 0;
+    ret 0;
 }
 
 ## primitives:

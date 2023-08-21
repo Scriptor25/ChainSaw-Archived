@@ -2,9 +2,9 @@ package io.scriptor.chainsaw.ast;
 
 public class IdentExpr extends Expr {
 
-    public String ident;
+    public String value;
 
     public IdentExpr(String ident) {
-        this.ident = ident;
+        this.value = ident;
     }
 }

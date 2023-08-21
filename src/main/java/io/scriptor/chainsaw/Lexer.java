@@ -60,7 +60,7 @@ public class Lexer {
             }
 
             // number
-            if (isDigit(c) || c == '.') {
+            if (isDigit(c) || (c == '.' && isDigit(mEater.next()))) {
                 StringBuilder num = new StringBuilder().append(c);
                 TokenType type = c == '.' ? TokenType.NUMBER_FLOAT : TokenType.NUMBER_INT;
 
@@ -252,6 +252,7 @@ public class Lexer {
         return c >= 0x30 && c <= 0x39;
     }
 
+    @SuppressWarnings("unused")
     private static boolean isXDigit(char c) {
         return isDigit(c) || (c >= 0x41 && c <= 0x46) || (c >= 0x61 && c <= 0x66);
     }
