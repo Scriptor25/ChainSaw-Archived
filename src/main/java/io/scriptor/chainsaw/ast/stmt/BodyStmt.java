@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.ast;
+package io.scriptor.chainsaw.ast.stmt;
 
 import java.util.List;
 import java.util.Vector;

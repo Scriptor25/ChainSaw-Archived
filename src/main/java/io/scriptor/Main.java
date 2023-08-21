@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import io.scriptor.chainsaw.Lexer;
 import io.scriptor.chainsaw.Parser;
 import io.scriptor.chainsaw.StringEater;
+import io.scriptor.chainsaw.runtime.Interpreter;
 
 class Main {
 
@@ -27,6 +28,7 @@ class Main {
         var parser = new Parser(tokens);
         var program = parser.parseProgram();
 
-        System.out.println(program);
+        var interpreter = new Interpreter(program);
+        interpreter.evaluate();
     }
 }

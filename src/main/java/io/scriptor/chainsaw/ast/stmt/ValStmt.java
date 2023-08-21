@@ -1,4 +1,6 @@
-package io.scriptor.chainsaw.ast;
+package io.scriptor.chainsaw.ast.stmt;
+
+import io.scriptor.chainsaw.ast.expr.Expr;
 
 public class ValStmt extends Stmt {
 

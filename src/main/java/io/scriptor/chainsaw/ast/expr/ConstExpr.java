@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.ast;
+package io.scriptor.chainsaw.ast.expr;
 
 public class ConstExpr extends Expr {
 

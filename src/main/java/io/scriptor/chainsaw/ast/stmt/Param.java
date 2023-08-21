@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.ast;
+package io.scriptor.chainsaw.ast.stmt;
 
 public class Param {
 
