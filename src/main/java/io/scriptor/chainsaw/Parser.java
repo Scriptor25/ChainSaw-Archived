@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Vector;
 
 import io.scriptor.chainsaw.ast.*;
+import io.scriptor.chainsaw.ast.expr.AssignExpr;
 import io.scriptor.chainsaw.ast.expr.BinaryExpr;
 import io.scriptor.chainsaw.ast.expr.CallExpr;
 import io.scriptor.chainsaw.ast.expr.ConstExpr;
@@ -262,7 +263,19 @@ public class Parser {
     }
 
     public Expr parseExpr() {
-        return parseBinaryExpr();
+        return parseAssignExpr();
+    }
+
+    public Expr parseAssignExpr() {
+        var assigne = parseBinaryExpr();
+
+        if (findAndEat(TokenType.EQUAL)) {
+            var value = parseExpr();
+
+            assigne = new AssignExpr(assigne, value);
+        }
+
+        return assigne;
     }
 
     public Expr parseBinaryExpr() {
@@ -272,12 +285,13 @@ public class Parser {
     public Expr parseCmpBinaryExpr() {
         var left = parseSumBinaryExpr();
 
-        if (next().type == TokenType.EQUAL ||
+        if ((next().type == TokenType.EQUAL &&
+                next(1).type == TokenType.EQUAL) ||
                 next().type == TokenType.LESS ||
                 next().type == TokenType.GREATER) {
 
             var operator = eat().value;
-            if (operator == "=" || next().type == TokenType.EQUAL)
+            if (operator.equals("=") || next().type == TokenType.EQUAL)
                 operator += expect(TokenType.EQUAL).value;
 
             var right = parseExpr();
@@ -323,7 +337,7 @@ public class Parser {
 
         if (findAndEat(TokenType.PAREN_OPEN)) {
             var cexpr = new CallExpr();
-            cexpr.function = expr;
+            cexpr.function = ((IdentExpr) expr).value;
 
             do {
                 if (next().type == TokenType.PAREN_CLOSE)

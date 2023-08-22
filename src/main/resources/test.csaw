@@ -1,3 +1,5 @@
+thing: string;
+
 ## define a function:
 ## this one is only the definition, and it has a variable amount of args at the end
 out << [msg: string] var;
@@ -11,7 +13,7 @@ thing: test {
 ## a function with body:
 ## this one has no return type and does not have any args
 helloWorld {
-    out("Hello, World!\n");
+    out("Hello, World!%n");
 }
 
 ## this function takes an int named n and returns an int
@@ -32,7 +34,7 @@ testConst: test << [a: float, b: int] {
 ## the main entry function always returns an int
 main: int {
     helloWorld();
-    print("fib(10) = %d\n", fib(10));
+    out("fib(10) = %d%n", fib(10));
 
     ret 0;
 }
