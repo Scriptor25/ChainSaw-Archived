@@ -1,6 +1,8 @@
-package io.scriptor.chainsaw.runtime.value;
+package io.scriptor.chainsaw.runtime;
 
 import java.util.List;
+
+import io.scriptor.chainsaw.runtime.value.Value;
 
 public class NativeFuncBody extends FuncBody {
 

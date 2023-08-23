@@ -3,8 +3,7 @@ package io.scriptor.chainsaw;
 public enum TokenType {
 
     IDENTIFIER,
-    NUMBER_INT,
-    NUMBER_FLOAT,
+    NUMBER,
     STRING,
     CHAR,
 

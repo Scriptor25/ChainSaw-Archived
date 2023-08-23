@@ -1,8 +1,8 @@
-package io.scriptor.chainsaw.runtime.value;
+package io.scriptor.chainsaw.runtime;
 
 public abstract class FuncBody {
 
-    protected Function function;
+    protected transient Function function;
 
     protected FuncBody(Function function) {
         this.function = function;

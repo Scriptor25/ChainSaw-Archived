@@ -1,15 +1,17 @@
-package io.scriptor.chainsaw.runtime.value;
+package io.scriptor.chainsaw.runtime;
 
-import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.type.FuncType;
 
-public class Function extends Value {
+public class Function {
 
+    private transient Environment environment;
+    private FuncType type;
     private String id;
     private FuncBody impl;
 
     private Function(Environment env, FuncType type) {
-        super(env, type);
+        this.environment = env;
+        this.type = type;
     }
 
     public void setImpl(FuncBody impl) {
@@ -19,12 +21,24 @@ public class Function extends Value {
         this.impl = impl;
     }
 
+    public Environment getEnvironment() {
+        return environment;
+    }
+
+    public FuncType getType() {
+        return type;
+    }
+
     public String getId() {
         return id;
     }
 
     public FuncBody getImpl() {
         return impl;
+    }
+
+    public boolean equals(FuncType type, String id) {
+        return this.type.equals(type) && this.id.equals(id);
     }
 
     public static Function get(Environment env, FuncType type, String id) {
@@ -37,9 +51,4 @@ public class Function extends Value {
 
         return env.addFunction(func);
     }
-
-    public boolean equals(FuncType type, String id) {
-        return this.getType().equals(type) && this.id.equals(id);
-    }
-
 }

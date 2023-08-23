@@ -11,7 +11,7 @@ public class ThingType extends Type {
     private Map<String, Type> fields;
 
     private ThingType(Environment env) {
-        super(env, "ThingType");
+        super(env);
     }
 
     public String getId() {
@@ -20,6 +20,14 @@ public class ThingType extends Type {
 
     public Map<String, Type> getFields() {
         return Collections.unmodifiableMap(fields);
+    }
+
+    public boolean hasField(String id) {
+        return fields.containsKey(id);
+    }
+
+    public boolean hasField(String id, Type type) {
+        return fields.containsKey(id) && fields.get(id).isCompat(type);
     }
 
     public boolean isOpaque() {
@@ -48,5 +56,10 @@ public class ThingType extends Type {
 
     public boolean equals(String id) {
         return this.id.equals(id);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && equals(((ThingType) o).id);
     }
 }

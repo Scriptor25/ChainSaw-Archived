@@ -12,7 +12,13 @@ public class StringValue extends Value {
         this.value = value;
     }
 
+    @Override
     public String getValue() {
+        return value;
+    }
+
+    @Override
+    public String toString() {
         return value;
     }
 }

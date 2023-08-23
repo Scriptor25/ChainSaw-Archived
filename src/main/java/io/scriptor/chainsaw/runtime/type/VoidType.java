@@ -5,7 +5,7 @@ import io.scriptor.chainsaw.runtime.Environment;
 public class VoidType extends Type {
 
     private VoidType(Environment env) {
-        super(env, "VoidType");
+        super(env);
     }
 
     public static VoidType get(Environment env) {

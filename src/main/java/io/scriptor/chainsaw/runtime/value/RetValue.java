@@ -11,7 +11,13 @@ public class RetValue extends Value {
         this.value = value;
     }
 
+    @Override
     public Value getValue() {
         return value;
+    }
+
+    @Override
+    public String toString() {
+        return value.toString();
     }
 }

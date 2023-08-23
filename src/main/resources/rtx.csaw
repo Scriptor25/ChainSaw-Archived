@@ -1,0 +1,51 @@
+main: num {
+
+    num j = 0;
+    while (j < 100) {
+        num i = 0;
+        while (i < 100) {
+
+            num u = i / 99.0;
+            num v = j / 99.0;
+
+            out("%f %f %f%n", u, v, 0.2);
+
+            i += 1;
+        }
+        j += 1;
+    }
+
+    ray r = ray(vec3(), vec3(0, 0, 1));
+
+    ret 0;
+}
+
+thing: vec3 {
+    x: num,
+    y: num,
+    z: num,
+}
+
+thing: ray {
+    orig: vec3,
+    dir: vec3,
+}
+
+vec3: vec3 << [x: num, y: num, z: num] {
+    vec3 this;
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    ret this;
+}
+
+vec3: vec3 {
+    ret vec3(0, 0, 0);
+}
+
+ray: ray << [o: vec3, d: vec3] {
+    ray this;
+    this.orig = o;
+    this.dir = d;
+    ret this;
+}

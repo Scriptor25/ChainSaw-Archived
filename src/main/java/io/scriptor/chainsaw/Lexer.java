@@ -61,22 +61,21 @@ public class Lexer {
 
             // number
             if (isDigit(c) || (c == '.' && isDigit(mEater.next()))) {
+                boolean hasPeriod = c == '.';
                 StringBuilder num = new StringBuilder().append(c);
-                TokenType type = c == '.' ? TokenType.NUMBER_FLOAT : TokenType.NUMBER_INT;
-
                 while (isDigit(mEater.next()) || mEater.next() == '.') {
                     c = mEater.eat();
                     if (c == '.') {
-                        if (type == TokenType.NUMBER_FLOAT)
+                        if (hasPeriod)
                             error(line, "too many period chars in number");
-                        type = TokenType.NUMBER_FLOAT;
+                        hasPeriod = true;
                     }
 
                     num.append(c);
                 }
 
                 tokens.add(new Token()
-                        .type(type)
+                        .type(TokenType.NUMBER)
                         .value(num.toString())
                         .line(line));
 

@@ -10,6 +10,11 @@ thing: test {
     b: int,
 }
 
+thing: membered {
+    t: test,
+    f: float
+}
+
 ## a function with body:
 ## this one has no return type and does not have any args
 helloWorld {
@@ -24,10 +29,17 @@ fib: int << [n: int] {
 }
 
 ## this function is used as a constructor for a test-thing, taking in a float a and an int b, returning a instance of test
-testConst: test << [a: float, b: int] {
+test: test << [a: float, b: int] {
     test this;
     this.a = a;
     this.b = b;
+    ret this;
+}
+
+membered: membered << [t: test, f: float] {
+    membered this;
+    this.t = t;
+    this.f = f;
     ret this;
 }
 
@@ -35,6 +47,12 @@ testConst: test << [a: float, b: int] {
 main: int {
     helloWorld();
     out("fib(10) = %d%n", fib(10));
+    out("%d * %d = %d%n", 5, 10, 5 * 10);
+
+    test t = test(0.1, 2);
+    membered m = membered(t, 6.9);
+
+    out("%f%n", m.t.a + m.t.b * m.f);
 
     ret 0;
 }

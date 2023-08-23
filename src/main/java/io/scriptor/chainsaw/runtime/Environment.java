@@ -55,6 +55,9 @@ public class Environment {
 
     public <V extends Value> V setValue(String id, V value) {
         if (values.containsKey(id)) {
+            if (values.get(id) != null && !values.get(id).getType().isCompat(value.getType()))
+                return Util.error("cannot assign value of type %s to '%s'", value.getType(), id);
+
             values.put(id, value);
             return value;
         }
@@ -89,14 +92,14 @@ public class Environment {
             if (!func.getId().equals(id))
                 continue;
 
-            var type = (FuncType) func.getType();
+            var type = func.getType();
             var params = type.getParams();
             if (params.size() != args.size() && !type.isVararg())
                 continue;
 
             int arg = 0;
-            for (var key : params.keySet())
-                if (params.get(key).equals(args.get(arg++).getType()))
+            for (; arg < params.size(); arg++)
+                if (!params.get(arg).type.isCompat(args.get(arg).getType()))
                     break;
 
             if (arg != params.size())
@@ -124,27 +127,22 @@ public class Environment {
             if (type instanceof VoidType)
                 return (VoidType) type;
 
+        if (parent != null)
+            return parent.getVoidType();
+
         return null;
     }
 
-    public FloatType getFloatType(int bits) {
+    public NumberType getNumberType(int bits) {
         for (Type type : types)
-            if (type instanceof FloatType) {
-                FloatType ft = (FloatType) type;
+            if (type instanceof NumberType) {
+                NumberType ft = (NumberType) type;
                 if (ft.equals(bits))
                     return ft;
             }
 
-        return null;
-    }
-
-    public IntType getIntType(int bits) {
-        for (Type type : types)
-            if (type instanceof IntType) {
-                IntType it = (IntType) type;
-                if (it.equals(bits))
-                    return it;
-            }
+        if (parent != null)
+            return parent.getNumberType(bits);
 
         return null;
     }
@@ -157,16 +155,22 @@ public class Environment {
                     return tt;
             }
 
+        if (parent != null)
+            return parent.getThingType(id);
+
         return null;
     }
 
-    public FuncType getFuncType(Type result, Map<String, Type> params, boolean vararg) {
+    public FuncType getFuncType(Type result, List<FuncParam> params, boolean vararg) {
         for (Type type : types)
             if (type instanceof FuncType) {
                 FuncType ft = (FuncType) type;
                 if (ft.equals(result, params, vararg))
                     return ft;
             }
+
+        if (parent != null)
+            return parent.getFuncType(result, params, vararg);
 
         return null;
     }

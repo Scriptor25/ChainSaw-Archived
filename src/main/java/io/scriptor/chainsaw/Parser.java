@@ -20,6 +20,7 @@ import io.scriptor.chainsaw.ast.stmt.RetStmt;
 import io.scriptor.chainsaw.ast.stmt.Stmt;
 import io.scriptor.chainsaw.ast.stmt.ThingStmt;
 import io.scriptor.chainsaw.ast.stmt.ValStmt;
+import io.scriptor.chainsaw.ast.stmt.WhileStmt;
 
 public class Parser {
 
@@ -149,11 +150,17 @@ public class Parser {
 
     public Stmt parseStmt() {
 
+        if (next().type == TokenType.BRACE_OPEN)
+            return parseBodyStmt();
+
         if (next().value.equals("thing"))
             return parseThingStmt();
 
         if (next().value.equals("if"))
             return parseIfStmt();
+
+        if (next().value.equals("while"))
+            return parseWhileStmt();
 
         if (next().value.equals("ret"))
             return parseRetStmt();
@@ -239,6 +246,18 @@ public class Parser {
         return stmt;
     }
 
+    public WhileStmt parseWhileStmt() {
+        var stmt = new WhileStmt();
+
+        expect("while");
+        expect(TokenType.PAREN_OPEN);
+        stmt.condition = parseExpr();
+        expect(TokenType.PAREN_CLOSE);
+        stmt.body = parseStmt();
+
+        return stmt;
+    }
+
     public RetStmt parseRetStmt() {
         expect("ret");
         var value = parseExpr();
@@ -308,6 +327,8 @@ public class Parser {
         if (next().type == TokenType.PLUS || next().type == TokenType.MINUS) {
 
             var operator = eat().value;
+            if (next().type == TokenType.EQUAL)
+                operator += eat().value;
 
             var right = parseExpr();
 
@@ -323,6 +344,8 @@ public class Parser {
         if (next().type == TokenType.ASTER || next().type == TokenType.SLASH) {
 
             var operator = eat().value;
+            if (next().type == TokenType.EQUAL)
+                operator += eat().value;
 
             var right = parseExpr();
 
@@ -358,7 +381,7 @@ public class Parser {
         if (findAndEat(TokenType.PERIOD)) {
             var mexpr = new MemberExpr();
             mexpr.thing = ((IdentExpr) expr).value;
-            mexpr.member = parseExpr();
+            mexpr.member = parseMemberExpr();
             expr = mexpr;
         }
 
@@ -373,10 +396,8 @@ public class Parser {
                 return new IdentExpr(token.value);
             case STRING:
                 return new ConstExpr(token.value, ConstType.STRING);
-            case NUMBER_INT:
-                return new ConstExpr(token.value, ConstType.INT);
-            case NUMBER_FLOAT:
-                return new ConstExpr(token.value, ConstType.FLOAT);
+            case NUMBER:
+                return new ConstExpr(token.value, ConstType.NUMBER);
             case CHAR:
                 return new ConstExpr(token.value, ConstType.CHAR);
 
