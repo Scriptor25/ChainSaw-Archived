@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import io.scriptor.chainsaw.runtime.NativeFuncBody.NativeFunc;
 import io.scriptor.chainsaw.runtime.type.*;
 import io.scriptor.chainsaw.runtime.value.*;
 
@@ -18,6 +19,7 @@ public class Environment {
     private Map<String, Value> values = new HashMap<>();
 
     public Environment() {
+        registerStandardFunctions();
     }
 
     public Environment(Environment parent) {
@@ -28,19 +30,109 @@ public class Environment {
         functions.clear();
         types.clear();
         values.clear();
+
+        registerStandardFunctions();
+    }
+
+    private void registerStandardFunctions() {
+        NativeType.create(this, FileStream.class, "file");
+
+        { // sqrt
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("t", NumberType.get(this)));
+
+            registerNativeFunction("sqrt", NumberType.get(this), params, false, false,
+                    args -> new NumberValue(this, Math.sqrt((double) args.get("t").getValue())));
+        }
+
+        { // floor
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("t", NumberType.get(this)));
+
+            registerNativeFunction("floor", NumberType.get(this), params, false, false,
+                    args -> new NumberValue(this, Math.floor((double) args.get("t").getValue())));
+        }
+
+        { // out
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("msg", StringType.get(this)));
+
+            registerNativeFunction("out", VoidType.get(this), params, true, false,
+                    args -> {
+                        String msg = ((StringValue) args.get("msg")).getValue();
+
+                        Object[] arg = new Object[args.size() - 1];
+                        for (int i = 0; i < arg.length; i++)
+                            arg[i] = args.get("vararg" + i);
+
+                        System.out.print(Util.format(msg, arg));
+
+                        return null;
+                    });
+        }
+
+        { // fopen
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("path", StringType.get(this)));
+            params.add(new FuncParam("mode", StringType.get(this)));
+
+            registerNativeFunction("fopen", NativeType.get(this, "file"), params, false, false,
+                    args -> new NativeValue<>(this, new FileStream(
+                            (String) args.get("path").getValue(),
+                            (String) args.get("mode").getValue())));
+        }
+
+        { // fout
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("file", NativeType.get(this, "file")));
+            params.add(new FuncParam("msg", StringType.get(this)));
+
+            registerNativeFunction("fout", VoidType.get(this), params, true, false,
+                    args -> {
+                        var file = (FileStream) args.get("file").getValue();
+                        var msg = (String) args.get("msg").getValue();
+
+                        Object[] arg = new Object[args.size() - 2];
+                        for (int i = 0; i < arg.length; i++)
+                            arg[i] = args.get("vararg" + i);
+
+                        file.out(Util.format(msg, arg));
+
+                        return null;
+                    });
+        }
+
+        { // fin
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("file", NativeType.get(this, "file")));
+
+            registerNativeFunction("fin", StringType.get(this), params, false, false,
+                    args -> new StringValue(this, ((FileStream) args.get("file").getValue()).in()));
+        }
+
+        { // fclose
+            List<FuncParam> params = new Vector<>();
+            params.add(new FuncParam("file", NativeType.get(this, "file")));
+
+            registerNativeFunction("fclose", VoidType.get(this), params, false, false,
+                    args -> {
+                        var file = (FileStream) args.get("file").getValue();
+                        file.close();
+
+                        return null;
+                    });
+        }
     }
 
     public Environment getParent() {
         return parent;
     }
 
-    public <V extends Value> V createValue(String id, V value) {
+    public void createValue(String id, Value value) {
         if (values.containsKey(id))
-            return Util.error("value with id '%s' already defined", id);
+            Util.error("value with id '%s' already defined", id);
 
         values.put(id, value);
-
-        return value;
     }
 
     public Value getValue(String id) {
@@ -85,6 +177,25 @@ public class Environment {
             return parent.getFunction(type, id);
 
         return null;
+    }
+
+    public void registerNativeFunction(
+            String id,
+            Type result,
+            List<FuncParam> params,
+            boolean vararg,
+            boolean constructor,
+            NativeFunc func) {
+
+        var function = Function.get(this,
+                FuncType.get(
+                        this,
+                        result,
+                        params,
+                        vararg),
+                id, constructor);
+
+        function.setImpl(new NativeFuncBody(function, func));
     }
 
     public Function getFunctionByRef(String id, List<Value> args) {
@@ -133,16 +244,24 @@ public class Environment {
         return null;
     }
 
-    public NumberType getNumberType(int bits) {
+    public NumberType getNumberType() {
         for (Type type : types)
-            if (type instanceof NumberType) {
-                NumberType ft = (NumberType) type;
-                if (ft.equals(bits))
-                    return ft;
-            }
+            if (type instanceof NumberType)
+                return (NumberType) type;
 
         if (parent != null)
-            return parent.getNumberType(bits);
+            return parent.getNumberType();
+
+        return null;
+    }
+
+    public StringType getStringType() {
+        for (Type type : types)
+            if (type instanceof StringType)
+                return (StringType) type;
+
+        if (parent != null)
+            return parent.getStringType();
 
         return null;
     }
@@ -171,6 +290,21 @@ public class Environment {
 
         if (parent != null)
             return parent.getFuncType(result, params, vararg);
+
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> NativeType<T> getNativeType(Class<T> nativeClass, String alias) {
+        for (Type type : types)
+            if (type instanceof NativeType) {
+                NativeType<?> nt = (NativeType<?>) type;
+                if (nt.equals(nativeClass, alias))
+                    return (NativeType<T>) nt;
+            }
+
+        if (parent != null)
+            return parent.getNativeType(nativeClass, alias);
 
         return null;
     }

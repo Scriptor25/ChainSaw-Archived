@@ -1,26 +1,26 @@
 package io.scriptor.chainsaw.runtime.type;
 
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.value.NumberValue;
+import io.scriptor.chainsaw.runtime.value.StringValue;
 import io.scriptor.chainsaw.runtime.value.Value;
 
-public class NumberType extends Type {
+public class StringType extends Type {
 
-    private NumberType(Environment env) {
+    private StringType(Environment env) {
         super(env);
     }
 
     @Override
     public Value nullValue() {
-        return new NumberValue(environment, 0);
+        return new StringValue(environment, "");
     }
 
-    public static NumberType get(Environment env) {
-        var type = env.getNumberType();
+    public static StringType get(Environment env) {
+        var type = env.getStringType();
         if (type != null)
             return type;
 
-        type = new NumberType(env);
+        type = new StringType(env);
 
         return env.addType(type);
     }

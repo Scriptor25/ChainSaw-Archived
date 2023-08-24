@@ -4,6 +4,8 @@ import java.util.Collections;
 import java.util.Map;
 
 import io.scriptor.chainsaw.runtime.Environment;
+import io.scriptor.chainsaw.runtime.value.ThingValue;
+import io.scriptor.chainsaw.runtime.value.Value;
 
 public class ThingType extends Type {
 
@@ -34,6 +36,20 @@ public class ThingType extends Type {
         return fields == null;
     }
 
+    public boolean equals(String id) {
+        return this.id.equals(id);
+    }
+
+    @Override
+    public Value nullValue() {
+        return new ThingValue(environment, this);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && equals(((ThingType) o).id);
+    }
+
     public static ThingType get(Environment env, String id) {
         var type = env.getThingType(id);
         return type;
@@ -47,19 +63,11 @@ public class ThingType extends Type {
         if (type == null) {
             type = new ThingType(env);
             type.id = id;
+            env.addType(type);
         }
 
         type.fields = fields;
 
-        return env.addType(type);
-    }
-
-    public boolean equals(String id) {
-        return this.id.equals(id);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o) && equals(((ThingType) o).id);
+        return type;
     }
 }

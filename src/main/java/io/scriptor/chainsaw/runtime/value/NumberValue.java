@@ -1,40 +1,37 @@
 package io.scriptor.chainsaw.runtime.value;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
-
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.type.NumberType;
 
 public class NumberValue extends Value {
 
-    private BigDecimal value;
+    private double value;
 
-    public NumberValue(Environment env, NumberType type, boolean value) {
-        this(env, type, new BigDecimal(value ? "1" : "0", new MathContext(type.getBits())));
+    public NumberValue(Environment env, boolean value) {
+        this(env, value ? 1 : 0);
     }
 
-    public NumberValue(Environment env, NumberType type, String value) {
-        super(env, type);
-        this.value = new BigDecimal(value, new MathContext(type.getBits()));
+    public NumberValue(Environment env, String value) {
+        this(env, Double.parseDouble(value));
     }
 
-    public NumberValue(Environment env, NumberType type, BigDecimal value) {
-        this(env, type, value.toString());
+    public NumberValue(Environment env, double value) {
+        super(env, NumberType.get(env));
+        this.value = value;
     }
 
     public boolean getBool() {
-        return value.longValue() != 0;
+        return value != 0;
     }
 
     @Override
-    public BigDecimal getValue() {
+    public Double getValue() {
         return value;
     }
 
     @Override
     public String toString() {
-        return value.toString();
+        return (value == Math.floor(value)) ? Long.toString((long) value) : Double.toString(value);
     }
 
 }

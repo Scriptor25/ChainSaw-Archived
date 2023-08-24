@@ -1,14 +1,14 @@
 package io.scriptor.chainsaw.runtime.value;
 
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.type.ThingType;
+import io.scriptor.chainsaw.runtime.type.StringType;
 
 public class StringValue extends Value {
 
     private String value;
 
-    public StringValue(Environment env, ThingType type, String value) {
-        super(env, type);
+    public StringValue(Environment env, String value) {
+        super(env, StringType.get(env));
         this.value = value;
     }
 
@@ -21,4 +21,5 @@ public class StringValue extends Value {
     public String toString() {
         return value;
     }
+
 }

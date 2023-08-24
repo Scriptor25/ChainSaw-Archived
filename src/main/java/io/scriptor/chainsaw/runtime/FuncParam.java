@@ -1,4 +1,6 @@
-package io.scriptor.chainsaw.runtime.type;
+package io.scriptor.chainsaw.runtime;
+
+import io.scriptor.chainsaw.runtime.type.Type;
 
 public class FuncParam {
 

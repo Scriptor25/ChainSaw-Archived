@@ -1,7 +1,7 @@
 package io.scriptor.chainsaw.runtime.type;
 
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.Util;
+import io.scriptor.chainsaw.runtime.value.Value;
 
 import static io.scriptor.chainsaw.Constants.*;
 
@@ -33,6 +33,14 @@ public abstract class Type {
         return this instanceof FuncType;
     }
 
+    public boolean isString() {
+        return this instanceof StringType;
+    }
+
+    public boolean isNative() {
+        return this instanceof NativeType;
+    }
+
     public boolean isCompat(Type type) {
         if (type == null)
             return false;
@@ -41,6 +49,8 @@ public abstract class Type {
 
         return getClass().isInstance(type);
     }
+
+    public abstract Value nullValue();
 
     @Override
     public String toString() {
@@ -55,16 +65,6 @@ public abstract class Type {
             return true;
 
         return getClass().isInstance(o);
-    }
-
-    public static Type getBest(Type a, Type b) {
-        if (a.equals(b))
-            return a;
-
-        if (a.isNumber() && b.isNumber())
-            return ((NumberType) a).getBits() > ((NumberType) b).getBits() ? a : b;
-
-        return Util.error("");
     }
 
 }

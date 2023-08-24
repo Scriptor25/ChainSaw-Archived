@@ -1,21 +1,50 @@
+thing: vec3;
+thing: ray;
+
+ray_color: vec3 << [r: ray] {
+    vec3 unit_direction = unit_vector(r.dir);
+    num a = 0.5 * (unit_direction.y + 1);
+    ret add(mul(1 - a, vec3(1, 1, 1)), mul(a, vec3(0.5, 0.7, 1.0)));
+}
+
 main: num {
 
-    num j = 0;
-    while (j < 100) {
-        num i = 0;
-        while (i < 100) {
+    num aspect_ratio = 16 / 9;
+    num image_width = 400;
+    num image_height = floor(image_width / aspect_ratio);
 
-            num u = i / 99.0;
-            num v = j / 99.0;
+    num focal_length = 1;
+    num viewport_height = 2;
+    num viewport_width = viewport_height * aspect_ratio;
+    vec3 camera_center = vec3();
 
-            out("%f %f %f%n", u, v, 0.2);
+    vec3 viewport_u = vec3(viewport_width, 0, 0);
+    vec3 viewport_v = vec3(0, -viewport_height, 0);
 
-            i += 1;
+    vec3 pixel_delta_u = div(viewport_u, image_width);
+    vec3 pixel_delta_v = div(viewport_v, image_height);
+
+    vec3 viewport_upper_left = sub(sub(sub(camera_center, vec3(0, 0, focal_length)), div(viewport_u, 2)), div(viewport_v, 2));
+    vec3 pixel00_loc = add(viewport_upper_left, mul(0.5, add(pixel_delta_u, pixel_delta_v)));
+
+    file f = fopen("output.ppm", "out");
+    fout(f, "P3%n%s %s%n255%n", image_width, image_height);
+
+    for (num j = 0; j < image_height; j += 1;) {
+        out("%rScanlines remaining: %s              ", image_height - j);
+        for (num i = 0; i < image_width; i += 1;) {
+            vec3 pixel_center = add(add(pixel00_loc, mul(i, pixel_delta_u)), mul(j, pixel_delta_v));
+            vec3 ray_direction = sub(pixel_center, camera_center);
+            ray r = ray(camera_center, ray_direction);
+
+            vec3 pixel_color = ray_color(r);
+            write_color(f, pixel_color);
         }
-        j += 1;
     }
 
-    ray r = ray(vec3(), vec3(0, 0, 1));
+    out("%rDone.                          %n");
+
+    fclose(f);
 
     ret 0;
 }
@@ -26,26 +55,113 @@ thing: vec3 {
     z: num,
 }
 
+$vec3 {
+    ret vec3(0, 0, 0);
+}
+
+$vec3 << [x: num, y: num, z: num] {
+    my.x = x;
+    my.y = y;
+    my.z = z;
+    ret my;
+}
+
+e: num << [my: vec3, n: num] {
+    if (n == 0) ret my.x;
+    if (n == 1) ret my.y;
+    if (n == 2) ret my.z;
+    ret 0;
+}
+
+neg: vec3 << [my: vec3] {
+    ret vec3(-my.x, -my.y, -my.z);
+}
+
+addEq: vec3 << [my: vec3, v: vec3] {
+    my.x += v.x;
+    my.y += v.y;
+    my.z += v.z;
+    ret my;
+}
+
+mulEq: vec3 << [my: vec3, t: num] {
+    my.x *= t;
+    my.y *= t;
+    my.z *= t;
+    ret my;
+}
+
+divEq: vec3 << [my: vec3, t: num] {
+    ret mulEq(my, 1 / t);
+}
+
+length: num << [my: vec3] {
+    ret sqrt(length_squared(my));
+}
+
+length_squared: num << [my: vec3] {
+    ret my.x * my.x + my.y * my.y + my.z * my.z;
+}
+
+add: vec3 << [a: vec3, b: vec3] {
+    ret vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+sub: vec3 << [a: vec3, b: vec3] {
+    ret vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+mul: vec3 << [a: vec3, b: vec3] {
+    ret vec3(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+mul: vec3 << [a: num, b: vec3] {
+    ret vec3(a * b.x, a * b.y, a * b.z);
+}
+
+mul: vec3 << [a: vec3, b: num] {
+    ret mul(b, a);
+}
+
+div: vec3 << [a: vec3, b: num] {
+    ret mul(a, 1 / b);
+}
+
+dot: num << [a: vec3, b: vec3] {
+    ret a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+cross: vec3 << [a: vec3, b: vec3] {
+    ret vec3(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    );
+}
+
+unit_vector: vec3 << [v: vec3] {
+    ret div(v, length(v));
+}
+
+write_color << [f: file, v: vec3] {
+    fout(f, "%s %s %s %n",
+        floor(v.x * 255.999),
+        floor(v.y * 255.999),
+        floor(v.z * 255.999)
+    );
+}
+
 thing: ray {
     orig: vec3,
     dir: vec3,
 }
 
-vec3: vec3 << [x: num, y: num, z: num] {
-    vec3 this;
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    ret this;
+$ray << [orig: vec3, dir: vec3] {
+    my.orig = orig;
+    my.dir = dir;
+    ret my;
 }
 
-vec3: vec3 {
-    ret vec3(0, 0, 0);
-}
-
-ray: ray << [o: vec3, d: vec3] {
-    ray this;
-    this.orig = o;
-    this.dir = d;
-    ret this;
+at: vec3 << [my: ray, t: num] {
+    ret add(my.orig, mul(t, my.dir));
 }
