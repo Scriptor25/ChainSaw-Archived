@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.runtime;
+package io.scriptor.chainsaw.runtime.function;
 
 public abstract class FuncBody {
 
@@ -11,4 +11,5 @@ public abstract class FuncBody {
     public Function getFunction() {
         return function;
     }
+
 }

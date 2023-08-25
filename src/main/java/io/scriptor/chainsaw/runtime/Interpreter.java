@@ -8,6 +8,11 @@ import java.util.Vector;
 import io.scriptor.chainsaw.ast.*;
 import io.scriptor.chainsaw.ast.expr.*;
 import io.scriptor.chainsaw.ast.stmt.*;
+import io.scriptor.chainsaw.runtime.function.FuncBody;
+import io.scriptor.chainsaw.runtime.function.FuncParam;
+import io.scriptor.chainsaw.runtime.function.Function;
+import io.scriptor.chainsaw.runtime.function.NativeFuncBody;
+import io.scriptor.chainsaw.runtime.function.RuntimeFuncBody;
 import io.scriptor.chainsaw.runtime.type.*;
 import io.scriptor.chainsaw.runtime.value.*;
 
@@ -26,6 +31,8 @@ public class Interpreter {
         for (var stmt : program)
             evaluateStmt(stmt);
 
+        // System.out.println(GSON.toJson(environment));
+
         // get main entry point
         var main = Function.get(
                 environment,
@@ -34,21 +41,24 @@ public class Interpreter {
                         NumberType.get(environment),
                         null,
                         false),
-                "main", false);
+                "main", false, null);
 
-        var value = evaluateFuncBody(main, null);
+        var value = evaluateFuncBody(main, null, null);
+
         System.out.printf("main -> %s%n", value);
     }
 
     private Type evaluateType(String type) {
         if (type == null)
-            return VoidType.get(environment);
+            return null;
 
         switch (type) {
             case "num":
                 return NumberType.get(environment);
             case "str":
                 return StringType.get(environment);
+            case "void":
+                return VoidType.get(environment);
         }
 
         Type t = ThingType.get(environment, type);
@@ -62,7 +72,7 @@ public class Interpreter {
         return Util.error("undefined Type '%s'", type);
     }
 
-    private Value evaluateFuncBody(Function func, List<Value> args) {
+    private Value evaluateFuncBody(Function func, List<Value> args, Value my) {
         FuncBody body = func.getImpl();
         if (body instanceof RuntimeFuncBody) {
             environment = new Environment(environment);
@@ -79,14 +89,26 @@ public class Interpreter {
                     environment.createValue("vararg" + (arg - startArg), args.get(arg));
 
                 if (func.isConstructor())
-                    environment.createValue("my", func.getType().getResult().nullValue());
+                    environment.createValue("my", func.getType().getResult().emptyValue());
+
+                if (func.getMemberOf() != null)
+                    environment.createValue("my", my);
             }
 
             Value value = null;
             for (var stmt : ((RuntimeFuncBody) body).getStmts()) {
                 value = evaluateStmt(stmt);
-                if (value instanceof RetValue)
+                if (RetValue.forMe(environment, value))
                     break;
+                else
+                    value = null;
+            }
+
+            if (func.isConstructor()) {
+                if (RetValue.forMe(environment, value))
+                    return Util.error("a constructor must not return anything!");
+
+                value = environment.getValue("my");
             }
 
             environment = environment.getParent();
@@ -109,7 +131,10 @@ public class Interpreter {
                     arguments.put("vararg" + (arg - startArg), args.get(arg));
 
                 if (func.isConstructor())
-                    arguments.put("my", func.getType().getResult().nullValue());
+                    arguments.put("my", func.getType().getResult().emptyValue());
+
+                if (func.getMemberOf() != null)
+                    arguments.put("my", my);
             }
 
             return ((NativeFuncBody) body).run(arguments);
@@ -145,8 +170,10 @@ public class Interpreter {
         Value value = null;
         for (var s : stmt.stmts) {
             value = evaluateStmt(s);
-            if (value instanceof RetValue)
+            if (RetValue.forMe(environment, value))
                 break;
+            else
+                value = null;
         }
 
         environment = environment.getParent();
@@ -173,7 +200,7 @@ public class Interpreter {
 
         var result = evaluateType(stmt.constructor ? stmt.ident : stmt.type);
         var type = FuncType.get(environment, result, params, stmt.vararg);
-        var func = Function.get(environment, type, stmt.ident, stmt.constructor);
+        var func = Function.get(environment, type, stmt.ident, stmt.constructor, evaluateType(stmt.memberOf));
 
         if (stmt.impl != null)
             func.setImpl(new RuntimeFuncBody(func, stmt.impl.stmts));
@@ -218,7 +245,7 @@ public class Interpreter {
             value = evaluateExpr(stmt.value).extract();
 
         if (value == null)
-            value = type.nullValue();
+            value = type.emptyValue();
 
         environment.createValue(stmt.ident, value);
 
@@ -242,7 +269,9 @@ public class Interpreter {
         if (expr instanceof BinaryExpr)
             return evaluateBinaryExpr((BinaryExpr) expr);
         if (expr instanceof CallExpr)
-            return evaluateCallExpr((CallExpr) expr);
+            return evaluateCallExpr((CallExpr) expr, null);
+        if (expr instanceof CondExpr)
+            return evaluateCondExpr((CondExpr) expr);
         if (expr instanceof ConstExpr)
             return evaluateConstExpr((ConstExpr) expr);
         if (expr instanceof IdentExpr)
@@ -262,7 +291,7 @@ public class Interpreter {
             return assignMember((MemberExpr) expr.member,
                     (ThingValue) vthing.getField(((MemberExpr) expr.member).thing), value);
 
-        return Util.error("");
+        return Util.error("unknown error occurred");
     }
 
     private Value evaluateAssignExpr(AssignExpr expr) {
@@ -298,6 +327,13 @@ public class Interpreter {
         var left = (NumberValue) vleft;
         var right = (NumberValue) vright;
 
+        if (expr.operator.equals("||")) {
+            return new NumberValue(environment, left.getBool() || right.getBool());
+        }
+        if (expr.operator.equals("&&")) {
+            return new NumberValue(environment, left.getBool() && right.getBool());
+        }
+
         if (expr.operator.equals("<")) {
             return new NumberValue(environment, left.getValue() < right.getValue());
         }
@@ -327,14 +363,27 @@ public class Interpreter {
         return Util.error("binary operator '%s' not yet implemented", expr.operator);
     }
 
-    private Value evaluateCallExpr(CallExpr expr) {
+    private Value evaluateCallExpr(CallExpr expr, Value thing) {
         List<Value> args = new Vector<>();
         for (var arg : expr.args)
             args.add(evaluateExpr(arg).extract());
 
-        var func = environment.getFunctionByRef(expr.function, args);
+        var func = environment.getFunctionByRef(expr.function, args, thing == null ? null : thing.getType());
 
-        return evaluateFuncBody(func, args);
+        if (func == null)
+            return Util.error("undefined function id '%s', args %s, member of %s", expr.function, args,
+                    thing == null ? null : thing.getType());
+
+        return evaluateFuncBody(func, args, thing);
+    }
+
+    private Value evaluateCondExpr(CondExpr expr) {
+        var condition = (NumberValue) evaluateExpr(expr.condition).extract();
+
+        if (condition.getBool())
+            return evaluateExpr(expr.isTrue);
+
+        return evaluateExpr(expr.isFalse);
     }
 
     private Value evaluateConstExpr(ConstExpr expr) {
@@ -356,19 +405,37 @@ public class Interpreter {
         return environment.getValue(expr.value);
     }
 
-    private Value getMember(MemberExpr expr, ThingValue vthing) {
+    private Value getThingMember(MemberExpr expr, ThingValue vthing) {
         if (expr.member instanceof IdentExpr)
             return vthing.getField(((IdentExpr) expr.member).value);
-        if (expr.member instanceof MemberExpr)
-            return getMember((MemberExpr) expr.member,
-                    (ThingValue) vthing.getField(((MemberExpr) expr.member).thing));
+        if (expr.member instanceof CallExpr)
+            return evaluateCallExpr((CallExpr) expr.member, vthing);
+        if (expr.member instanceof MemberExpr) {
+            var value = vthing.getField(((MemberExpr) expr.member).thing);
+            if (value.getType().isThing())
+                return getThingMember((MemberExpr) expr.member, (ThingValue) value);
+            if (value.getType().isNative())
+                return getNativeMember((MemberExpr) expr.member, (NativeValue<?>) value);
+        }
 
-        return Util.error("");
+        return Util.error("unknown error occurred");
+    }
+
+    private Value getNativeMember(MemberExpr expr, NativeValue<?> vnative) {
+        if (expr.member instanceof CallExpr)
+            return evaluateCallExpr((CallExpr) expr.member, vnative);
+
+        return Util.error("unknown error occurred");
     }
 
     private Value evaluateMemberExpr(MemberExpr expr) {
-        var vthing = (ThingValue) environment.getValue(expr.thing);
-        return getMember(expr, vthing);
+        var value = environment.getValue(expr.thing);
+        if (value.getType().isThing())
+            return getThingMember(expr, (ThingValue) value);
+        if (value.getType().isNative())
+            return getNativeMember(expr, (NativeValue<?>) value);
+
+        return Util.error("unknown error occurred");
     }
 
     private Value evaluateUnaryExpr(UnaryExpr expr) {
@@ -376,9 +443,12 @@ public class Interpreter {
         var type = value.getType();
 
         if (type.isNumber()) {
+            var nval = (NumberValue) value;
             switch (expr.operator) {
                 case "-":
-                    return new NumberValue(environment, -(double) value.getValue());
+                    return new NumberValue(environment, -nval.getValue());
+                case "!":
+                    return new NumberValue(environment, !nval.getBool());
             }
         }
 

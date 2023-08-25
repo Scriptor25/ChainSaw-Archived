@@ -185,10 +185,6 @@ public class Lexer {
                     type = TokenType.EXCLAM;
                     break;
 
-                case '§':
-                    type = TokenType.PARAGR;
-                    break;
-
                 case '$':
                     type = TokenType.DOLLAR;
                     break;

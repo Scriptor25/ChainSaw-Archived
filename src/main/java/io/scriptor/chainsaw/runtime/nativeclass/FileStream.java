@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.runtime;
+package io.scriptor.chainsaw.runtime.nativeclass;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -9,8 +9,8 @@ import java.io.IOException;
 
 public class FileStream implements Closeable {
 
-    private BufferedWriter writer;
-    private BufferedReader reader;
+    private transient BufferedWriter writer;
+    private transient BufferedReader reader;
 
     public FileStream(String path, String mode) throws IOException {
         switch (mode) {

@@ -5,15 +5,16 @@ public class Util {
     private Util() {
     }
 
-    private static final boolean FATAL_ERROR = false;
+    private static final boolean FATAL_ERROR = true;
 
     public static <T> T error(String fmt, Object... args) {
+        System.out.println();
         var err = String.format(fmt, args);
+        System.err.println(err);
 
         if (FATAL_ERROR)
             throw new RuntimeException(err);
 
-        System.err.println(err);
         return null;
     }
 

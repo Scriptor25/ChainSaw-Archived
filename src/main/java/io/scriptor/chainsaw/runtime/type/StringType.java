@@ -11,7 +11,7 @@ public class StringType extends Type {
     }
 
     @Override
-    public Value nullValue() {
+    public Value emptyValue() {
         return new StringValue(environment, "");
     }
 

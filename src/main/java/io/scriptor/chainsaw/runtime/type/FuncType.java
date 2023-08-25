@@ -4,8 +4,8 @@ import java.util.Collections;
 import java.util.List;
 
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.FuncParam;
 import io.scriptor.chainsaw.runtime.Util;
+import io.scriptor.chainsaw.runtime.function.FuncParam;
 import io.scriptor.chainsaw.runtime.value.Value;
 
 public class FuncType extends Type {
@@ -23,7 +23,7 @@ public class FuncType extends Type {
     }
 
     public List<FuncParam> getParams() {
-        return Collections.unmodifiableList(params);
+        return params == null ? Collections.emptyList() : Collections.unmodifiableList(params);
     }
 
     public boolean isVararg() {
@@ -31,12 +31,16 @@ public class FuncType extends Type {
     }
 
     public boolean equals(Type result, List<FuncParam> params, boolean vararg) {
-        return this.result.equals(result) && (this.params.equals(params) || (this.params.isEmpty() && params == null))
+        return (this.result == result || (this.result != null && this.result.equals(result)))
+                && (this.params == params
+                        || (this.params != null && this.params.equals(params)
+                                || (this.params == null && params.isEmpty()))
+                        || (this.params != null && this.params.isEmpty() && params == null))
                 && this.vararg == vararg;
     }
 
     @Override
-    public Value nullValue() {
+    public Value emptyValue() {
         return Util.error("FuncType does not have a null value");
     }
 

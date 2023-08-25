@@ -5,10 +5,11 @@ import java.util.Vector;
 
 public class FuncStmt extends Stmt {
 
-    public String ident;
+    public String ident = null;
     public boolean constructor = false;
-    public String type;
+    public String type = null;
     public List<Param> params = new Vector<>();
     public boolean vararg = false;
-    public BodyStmt impl;
+    public String memberOf = null;
+    public BodyStmt impl = null;
 }

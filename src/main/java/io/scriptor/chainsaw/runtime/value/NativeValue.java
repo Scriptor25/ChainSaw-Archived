@@ -22,9 +22,4 @@ public class NativeValue<T> extends Value {
         return value;
     }
 
-    @Override
-    public String toString() {
-        return value.toString();
-    }
-
 }

@@ -3,8 +3,6 @@ package io.scriptor.chainsaw.runtime.type;
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.value.Value;
 
-import static io.scriptor.chainsaw.Constants.*;
-
 public abstract class Type {
 
     protected transient Environment environment;
@@ -50,12 +48,7 @@ public abstract class Type {
         return getClass().isInstance(type);
     }
 
-    public abstract Value nullValue();
-
-    @Override
-    public String toString() {
-        return GSON.toJson(this);
-    }
+    public abstract Value emptyValue();
 
     @Override
     public boolean equals(Object o) {

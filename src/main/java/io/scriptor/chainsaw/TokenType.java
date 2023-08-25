@@ -13,6 +13,7 @@ public enum TokenType {
     BRACE_CLOSE,
     BRACKET_OPEN,
     BRACKET_CLOSE,
+
     PERIOD,
     COLON,
     COMMA,
@@ -24,7 +25,6 @@ public enum TokenType {
     SLASH,
     CARET,
     EXCLAM,
-    PARAGR,
     DOLLAR,
     PERCENT,
     AND,

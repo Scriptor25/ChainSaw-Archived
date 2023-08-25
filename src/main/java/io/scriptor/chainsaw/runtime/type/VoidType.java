@@ -10,8 +10,13 @@ public class VoidType extends Type {
     }
 
     @Override
-    public Value nullValue() {
+    public Value emptyValue() {
         return null;
+    }
+
+    @Override
+    public boolean isCompat(Type type) {
+        return true;
     }
 
     public static VoidType get(Environment env) {

@@ -25,7 +25,12 @@ public class NativeType<T> extends Type {
     }
 
     @Override
-    public Value nullValue() {
+    public boolean equals(Object o) {
+        return super.equals(o) && equals(((NativeType<?>) o).nativeClass, ((NativeType<?>) o).alias);
+    }
+
+    @Override
+    public Value emptyValue() {
         return new NativeValue<T>(environment, this, null);
     }
 

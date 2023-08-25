@@ -8,8 +8,6 @@ import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.Util;
 import io.scriptor.chainsaw.runtime.type.ThingType;
 
-import static io.scriptor.chainsaw.Constants.*;
-
 public class ThingValue extends Value {
 
     private Map<String, Value> fields;
@@ -42,11 +40,6 @@ public class ThingValue extends Value {
     @Override
     public Map<String, Value> getValue() {
         return Collections.unmodifiableMap(fields);
-    }
-
-    @Override
-    public String toString() {
-        return PGSON.toJson(fields);
     }
 
 }

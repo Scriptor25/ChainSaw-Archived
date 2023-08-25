@@ -165,12 +165,14 @@ public class Parser {
         if (next().type == TokenType.IDENTIFIER &&
                 (next(1).type == TokenType.BRACE_OPEN ||
                         next(1).type == TokenType.SEMICOLON ||
+                        (next(1).type == TokenType.MINUS && next(2).type == TokenType.GREATER) ||
                         (next(1).type == TokenType.COLON && next(2).type == TokenType.IDENTIFIER) ||
                         (next(1).type == TokenType.LESS && next(2).type == TokenType.LESS)))
             return parseFuncStmt(false);
 
         var expr = parseExpr();
-        expect(TokenType.SEMICOLON);
+        if (next().type != TokenType.PAREN_CLOSE)
+            expect(TokenType.SEMICOLON);
 
         return expr;
     }
@@ -199,19 +201,22 @@ public class Parser {
 
         stmt.ident = expect(TokenType.IDENTIFIER).value;
         stmt.constructor = constructor;
-        if (findAndEat(TokenType.COLON)) {
+        if (findAndEat(TokenType.COLON)) { // return type
             if (constructor)
-                return error(next().line, "tried to explicitly set type of constructor");
+                return error(next().line, "constructor must not have a type specified");
             stmt.type = expect(TokenType.IDENTIFIER).value;
         }
-        if (findAndEat(TokenType.LESS, TokenType.LESS)) {
+        if (findAndEat(TokenType.LESS, TokenType.LESS)) { // parameters
             expect(TokenType.BRACKET_OPEN);
             parseParams(stmt.params);
             expect(TokenType.BRACKET_CLOSE);
         }
-        if (next().value.equals("var")) {
+        if (next().value.equals("var")) { // vararg
             eat();
             stmt.vararg = true;
+        }
+        if (findAndEat(TokenType.MINUS, TokenType.GREATER)) { // thing type
+            stmt.memberOf = expect(TokenType.IDENTIFIER).value;
         }
         if (findAndEat(TokenType.SEMICOLON))
             return stmt;
@@ -300,7 +305,7 @@ public class Parser {
     }
 
     public Expr parseAssignExpr() {
-        var assigne = parseBinaryExpr();
+        var assigne = parseCondExpr();
 
         if (findAndEat(TokenType.EQUAL)) {
             var value = parseExpr();
@@ -311,8 +316,48 @@ public class Parser {
         return assigne;
     }
 
+    public Expr parseCondExpr() {
+        var condition = parseBinaryExpr();
+
+        if (findAndEat(TokenType.QUEST)) {
+            var istrue = parseExpr();
+            expect(TokenType.COLON);
+            var isfalse = parseExpr();
+
+            condition = new CondExpr(condition, istrue, isfalse);
+        }
+
+        return condition;
+    }
+
     public Expr parseBinaryExpr() {
-        return parseCmpBinaryExpr();
+        return parseAndBinaryExpr();
+    }
+
+    public Expr parseAndBinaryExpr() {
+        var left = parseOrBinaryExpr();
+
+        if (findAndEat(TokenType.AND, TokenType.AND)) {
+
+            var right = parseExpr();
+
+            left = new BinaryExpr(left, right, "&&");
+        }
+
+        return left;
+    }
+
+    public Expr parseOrBinaryExpr() {
+        var left = parseCmpBinaryExpr();
+
+        if (findAndEat(TokenType.PIPE, TokenType.PIPE)) {
+
+            var right = parseExpr();
+
+            left = new BinaryExpr(left, right, "||");
+        }
+
+        return left;
     }
 
     public Expr parseCmpBinaryExpr() {
@@ -354,7 +399,7 @@ public class Parser {
     }
 
     public Expr parseProBinaryExpr() {
-        var left = parseCallExpr();
+        var left = parseUnaryExpr();
 
         if (next().type == TokenType.ASTER || next().type == TokenType.SLASH) {
 
@@ -369,6 +414,21 @@ public class Parser {
         }
 
         return left;
+    }
+
+    public Expr parseUnaryExpr() {
+        var expr = parseCallExpr();
+
+        if ((next().type == TokenType.PLUS && next(1).type == TokenType.PLUS) ||
+                next().type == TokenType.MINUS && next(1).type == TokenType.MINUS) {
+
+            var operator = eat().value;
+            expect(operator);
+
+            expr = new AssignExpr(expr, new BinaryExpr(expr, new ConstExpr("1", ConstType.NUMBER), operator));
+        }
+
+        return expr;
     }
 
     public Expr parseCallExpr() {
@@ -397,7 +457,7 @@ public class Parser {
         if (findAndEat(TokenType.PERIOD)) {
             var mexpr = new MemberExpr();
             mexpr.thing = ((IdentExpr) expr).value;
-            mexpr.member = parseMemberExpr();
+            mexpr.member = parseCallExpr();
             expr = mexpr;
         }
 
@@ -423,6 +483,8 @@ public class Parser {
             }
             case MINUS:
                 return new UnaryExpr("-", parseExpr());
+            case EXCLAM:
+                return new UnaryExpr("!", parseExpr());
 
             default:
                 return error(token.line, "undefined token type '%s' ('%s')", token.type, token.value);

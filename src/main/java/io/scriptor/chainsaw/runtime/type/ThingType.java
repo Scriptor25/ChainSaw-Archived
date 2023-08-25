@@ -41,8 +41,14 @@ public class ThingType extends Type {
     }
 
     @Override
-    public Value nullValue() {
-        return new ThingValue(environment, this);
+    public Value emptyValue() {
+        var value = new ThingValue(environment, this);
+
+        fields.forEach((id, type) -> {
+            value.setField(id, type.emptyValue());
+        });
+
+        return value;
     }
 
     @Override

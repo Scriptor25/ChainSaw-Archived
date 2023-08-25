@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.runtime;
+package io.scriptor.chainsaw.runtime.function;
 
 import java.util.Map;
 
@@ -11,7 +11,7 @@ public class NativeFuncBody extends FuncBody {
         public Value run(Map<String, Value> args) throws Exception;
     }
 
-    private NativeFunc func;
+    private transient NativeFunc func;
 
     public NativeFuncBody(Function function, NativeFunc runnable) {
         super(function);
@@ -26,4 +26,5 @@ public class NativeFuncBody extends FuncBody {
             throw new RuntimeException(e);
         }
     }
+
 }
