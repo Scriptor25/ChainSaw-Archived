@@ -1,13 +1,13 @@
 package io.scriptor.chainsaw.runtime;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
 import io.scriptor.chainsaw.runtime.function.*;
-import io.scriptor.chainsaw.runtime.function.NativeFuncBody.NativeFunc;
-import io.scriptor.chainsaw.runtime.nativeclass.*;
+import io.scriptor.chainsaw.runtime.natives.NativesCollector;
 import io.scriptor.chainsaw.runtime.type.*;
 import io.scriptor.chainsaw.runtime.value.*;
 
@@ -21,7 +21,7 @@ public class Environment {
     private Map<String, Value> values = new HashMap<>();
 
     public Environment() {
-        registerStandardFunctions();
+        reset();
     }
 
     public Environment(Environment parent) {
@@ -33,144 +33,7 @@ public class Environment {
         types.clear();
         values.clear();
 
-        registerStandardFunctions();
-    }
-
-    private void registerStandardFunctions() {
-        NativeType.create(this, FileStream.class, "file");
-        NativeType.create(this, ValueList.class, "list");
-
-        { // sqrt
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("t", NumberType.get(this)));
-
-            registerNativeFunction("sqrt", NumberType.get(this), params, false, false, null,
-                    args -> new NumberValue(this, Math.sqrt((double) args.get("t").getValue())));
-        }
-
-        { // floor
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("t", NumberType.get(this)));
-
-            registerNativeFunction("floor", NumberType.get(this), params, false, false, null,
-                    args -> new NumberValue(this, Math.floor((double) args.get("t").getValue())));
-        }
-
-        { // inf
-            registerNativeFunction("inf", NumberType.get(this), null, false, false, null,
-                    args -> new NumberValue(this, Double.MAX_VALUE));
-        }
-
-        { // random
-            registerNativeFunction("random", NumberType.get(this), null, false, false, null,
-                    args -> new NumberValue(this, Math.random()));
-        }
-
-        { // out
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("msg", StringType.get(this)));
-
-            registerNativeFunction("out", VoidType.get(this), params, true, false, null,
-                    args -> {
-                        String msg = ((StringValue) args.get("msg")).getValue();
-
-                        Object[] arg = new Object[args.size() - 1];
-                        for (int i = 0; i < arg.length; i++)
-                            arg[i] = args.get("vararg" + i);
-
-                        System.out.print(Util.format(msg, arg));
-
-                        return null;
-                    });
-        }
-
-        { // $file
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("path", StringType.get(this)));
-            params.add(new FuncParam("mode", StringType.get(this)));
-
-            registerNativeFunction("file", NativeType.get(this, "file"), params, false, true, null,
-                    args -> new NativeValue<>(this, new FileStream(
-                            (String) args.get("path").getValue(),
-                            (String) args.get("mode").getValue())));
-        }
-
-        { // file.out
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("msg", StringType.get(this)));
-
-            registerNativeFunction("out", VoidType.get(this), params, true, false, NativeType.get(this, "file"),
-                    args -> {
-                        var file = (FileStream) args.get("my").getValue();
-                        var msg = (String) args.get("msg").getValue();
-
-                        Object[] arg = new Object[args.size() - 2];
-                        for (int i = 0; i < arg.length; i++)
-                            arg[i] = args.get("vararg" + i);
-
-                        file.out(Util.format(msg, arg));
-
-                        return null;
-                    });
-        }
-
-        { // file.in
-            registerNativeFunction("in", StringType.get(this), null, false, false, NativeType.get(this, "file"),
-                    args -> new StringValue(this, ((FileStream) args.get("my").getValue()).in()));
-        }
-
-        { // file.close
-            registerNativeFunction("close", VoidType.get(this), null, false, false, NativeType.get(this, "file"),
-                    args -> {
-                        var file = (FileStream) args.get("my").getValue();
-                        file.close();
-
-                        return null;
-                    });
-        }
-
-        { // $list
-            registerNativeFunction("list", NativeType.get(this, "list"), null, false, true, null,
-                    args -> new NativeValue<>(this, new ValueList()));
-        }
-
-        { // list.add
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("t", VoidType.get(this)));
-
-            registerNativeFunction("add", VoidType.get(this), params, false, false, NativeType.get(this, "list"),
-                    args -> {
-                        @SuppressWarnings("unchecked")
-                        var list = ((NativeValue<ValueList>) args.get("my")).getValue();
-                        list.add(args.get("t"));
-
-                        return null;
-                    });
-        }
-
-        { // list.size
-            registerNativeFunction("size", NumberType.get(this), null, false, false, NativeType.get(this, "list"),
-                    args -> {
-                        @SuppressWarnings("unchecked")
-                        var list = ((NativeValue<ValueList>) args.get("my")).getValue();
-
-                        return new NumberValue(this, list.size());
-                    });
-        }
-
-        { // list.get
-            List<FuncParam> params = new Vector<>();
-            params.add(new FuncParam("idx", NumberType.get(this)));
-
-            registerNativeFunction("get", VoidType.get(this), params, false, false, NativeType.get(this, "list"),
-                    args -> {
-                        @SuppressWarnings("unchecked")
-                        var list = ((NativeValue<ValueList>) args.get("my")).getValue();
-                        var idx = (double) ((NumberValue) args.get("idx")).getValue();
-
-                        return list.get((int) idx);
-                    });
-        }
+        NativesCollector.registerNatives(this);
     }
 
     public Environment getParent() {
@@ -241,7 +104,7 @@ public class Environment {
             boolean vararg,
             boolean constructor,
             Type memberOf,
-            NativeFunc func) {
+            Method func) {
 
         var function = Function.get(this,
                 FuncType.get(

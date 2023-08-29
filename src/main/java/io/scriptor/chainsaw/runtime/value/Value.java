@@ -27,11 +27,14 @@ public abstract class Value {
 
     public abstract Object getValue();
 
-    public Value extract() {
-        if (!(getValue() instanceof Value))
-            return this;
+    public static Value extract(Value value) {
+        if (value == null)
+            return null;
 
-        return ((Value) getValue()).extract();
+        if (!(value.getValue() instanceof Value))
+            return value;
+
+        return extract((Value) value.getValue());
     }
 
     @Override

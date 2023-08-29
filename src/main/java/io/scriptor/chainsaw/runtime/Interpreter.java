@@ -48,30 +48,6 @@ public class Interpreter {
         System.out.printf("main -> %s%n", value);
     }
 
-    private Type evaluateType(String type) {
-        if (type == null)
-            return null;
-
-        switch (type) {
-            case "num":
-                return NumberType.get(environment);
-            case "str":
-                return StringType.get(environment);
-            case "void":
-                return VoidType.get(environment);
-        }
-
-        Type t = ThingType.get(environment, type);
-        if (t != null)
-            return t;
-
-        t = NativeType.get(environment, type);
-        if (t != null)
-            return t;
-
-        return Util.error("undefined Type '%s'", type);
-    }
-
     private Value evaluateFuncBody(Function func, List<Value> args, Value my) {
         FuncBody body = func.getImpl();
         if (body instanceof RuntimeFuncBody) {
@@ -137,7 +113,7 @@ public class Interpreter {
                     arguments.put("my", my);
             }
 
-            return ((NativeFuncBody) body).run(arguments);
+            return ((NativeFuncBody) body).run(environment, arguments);
         }
 
         return null;
@@ -184,7 +160,7 @@ public class Interpreter {
     private Value evaluateForStmt(ForStmt stmt) {
         evaluateStmt(stmt.before);
 
-        for (; ((NumberValue) evaluateExpr(stmt.condition).extract()).getBool(); evaluateStmt(stmt.loop)) {
+        for (; ((NumberValue) Value.extract(evaluateExpr(stmt.condition))).getBool(); evaluateStmt(stmt.loop)) {
             var value = evaluateStmt(stmt.body);
             if (value instanceof RetValue)
                 return value;
@@ -196,11 +172,16 @@ public class Interpreter {
     private Value evaluateFuncStmt(FuncStmt stmt) {
         List<FuncParam> params = new Vector<>();
         for (var p : stmt.params)
-            params.add(new FuncParam(p.ident, evaluateType(p.type)));
+            params.add(new FuncParam(p.ident, Type.parseType(environment, p.type)));
 
-        var result = evaluateType(stmt.constructor ? stmt.ident : stmt.type);
+        var result = Type.parseType(environment, stmt.constructor ? stmt.ident : stmt.type);
         var type = FuncType.get(environment, result, params, stmt.vararg);
-        var func = Function.get(environment, type, stmt.ident, stmt.constructor, evaluateType(stmt.memberOf));
+        var func = Function.get(
+                environment,
+                type,
+                stmt.ident,
+                stmt.constructor,
+                Type.parseType(environment, stmt.memberOf));
 
         if (stmt.impl != null)
             func.setImpl(new RuntimeFuncBody(func, stmt.impl.stmts));
@@ -209,7 +190,7 @@ public class Interpreter {
     }
 
     private Value evaluateIfStmt(IfStmt stmt) {
-        var condition = evaluateExpr(stmt.condition).extract();
+        var condition = Value.extract(evaluateExpr(stmt.condition));
 
         if (((NumberValue) condition).getBool())
             return evaluateStmt(stmt.isTrue);
@@ -220,7 +201,7 @@ public class Interpreter {
     }
 
     private Value evaluateRetStmt(RetStmt stmt) {
-        return new RetValue(environment, evaluateExpr(stmt.value).extract());
+        return new RetValue(environment, Value.extract(evaluateExpr(stmt.value)));
     }
 
     private Value evaluateThingStmt(ThingStmt stmt) {
@@ -229,7 +210,7 @@ public class Interpreter {
         if (stmt.params != null) {
             fields = new HashMap<>();
             for (var p : stmt.params)
-                fields.put(p.ident, evaluateType(p.type));
+                fields.put(p.ident, Type.parseType(environment, p.type));
         }
 
         ThingType.create(environment, stmt.ident, fields);
@@ -238,11 +219,11 @@ public class Interpreter {
     }
 
     private Value evaluateValStmt(ValStmt stmt) {
-        var type = evaluateType(stmt.type);
+        var type = Type.parseType(environment, stmt.type);
 
         Value value = null;
         if (stmt.value != null)
-            value = evaluateExpr(stmt.value).extract();
+            value = Value.extract(evaluateExpr(stmt.value));
 
         if (value == null)
             value = type.emptyValue();
@@ -253,7 +234,7 @@ public class Interpreter {
     }
 
     private Value evaluateWhileStmt(WhileStmt stmt) {
-        while (((NumberValue) evaluateExpr(stmt.condition).extract()).getBool()) {
+        while (((NumberValue) Value.extract(evaluateExpr(stmt.condition))).getBool()) {
             var value = evaluateStmt(stmt.body);
             if (value instanceof RetValue)
                 return value;
@@ -295,7 +276,7 @@ public class Interpreter {
     }
 
     private Value evaluateAssignExpr(AssignExpr expr) {
-        var value = evaluateExpr(expr.value).extract();
+        var value = Value.extract(evaluateExpr(expr.value));
 
         if (expr.assigne instanceof IdentExpr) {
             var id = ((IdentExpr) expr.assigne).value;
@@ -312,8 +293,8 @@ public class Interpreter {
     }
 
     private Value evaluateBinaryExpr(BinaryExpr expr) {
-        var vleft = evaluateExpr(expr.left).extract();
-        var vright = evaluateExpr(expr.right).extract();
+        var vleft = Value.extract(evaluateExpr(expr.left));
+        var vright = Value.extract(evaluateExpr(expr.right));
 
         if (expr.operator.equals("=="))
             return new NumberValue(environment, vleft.equals(vright));
@@ -366,7 +347,7 @@ public class Interpreter {
     private Value evaluateCallExpr(CallExpr expr, Value thing) {
         List<Value> args = new Vector<>();
         for (var arg : expr.args)
-            args.add(evaluateExpr(arg).extract());
+            args.add(Value.extract(evaluateExpr(arg)));
 
         var func = environment.getFunctionByRef(expr.function, args, thing == null ? null : thing.getType());
 
@@ -378,7 +359,7 @@ public class Interpreter {
     }
 
     private Value evaluateCondExpr(CondExpr expr) {
-        var condition = (NumberValue) evaluateExpr(expr.condition).extract();
+        var condition = (NumberValue) Value.extract(evaluateExpr(expr.condition));
 
         if (condition.getBool())
             return evaluateExpr(expr.isTrue);
@@ -439,7 +420,7 @@ public class Interpreter {
     }
 
     private Value evaluateUnaryExpr(UnaryExpr expr) {
-        var value = evaluateExpr(expr.expr).extract();
+        var value = Value.extract(evaluateExpr(expr.expr));
         var type = value.getType();
 
         if (type.isNumber()) {

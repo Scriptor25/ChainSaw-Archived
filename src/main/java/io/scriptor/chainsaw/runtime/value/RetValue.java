@@ -32,7 +32,7 @@ public class RetValue extends Value {
             return false;
 
         var retval = (RetValue) value;
-        return retval.depth <= env.getDepth();
+        return retval.depth >= env.getDepth();
     }
 
 }

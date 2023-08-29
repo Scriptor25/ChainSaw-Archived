@@ -147,6 +147,9 @@ public class Parser {
         if (next().value.equals("if"))
             return parseIfStmt();
 
+        if (next().value.equals("switch"))
+            return parseSwitchStmt();
+
         if (next().value.equals("while"))
             return parseWhileStmt();
 
@@ -156,11 +159,13 @@ public class Parser {
         if (next().value.equals("ret"))
             return parseRetStmt();
 
-        if (findAndEat(TokenType.DOLLAR))
-            return parseFuncStmt(true);
-
         if (next().type.equals(TokenType.IDENTIFIER) && next(1).type.equals(TokenType.IDENTIFIER))
             return parseValStmt();
+
+        // functions and constructors
+
+        if (findAndEat(TokenType.DOLLAR))
+            return parseFuncStmt(true);
 
         if (next().type == TokenType.IDENTIFIER &&
                 (next(1).type == TokenType.BRACE_OPEN ||
@@ -246,6 +251,38 @@ public class Parser {
         stmt.isTrue = parseStmt();
         if (findAndEat("else"))
             stmt.isFalse = parseStmt();
+
+        return stmt;
+    }
+
+    public SwitchStmt parseSwitchStmt() {
+        var stmt = new SwitchStmt();
+
+        expect("switch");
+        expect(TokenType.PAREN_OPEN);
+        stmt.condition = parseExpr();
+        expect(TokenType.PAREN_CLOSE);
+        expect(TokenType.BRACE_OPEN);
+        while (!findAndEat(TokenType.BRACE_CLOSE)) {
+
+            boolean isDefault = findAndEat("default");
+            Expr value = null;
+            if (!isDefault) {
+                expect("case");
+                value = parseExpr();
+            }
+            expect(TokenType.COLON);
+            Stmt next = parseStmt();
+
+            if (isDefault) {
+                if (stmt.defaultCase != null)
+                    return error(next().line, "cannot define a default case for a switch stmt twice");
+
+                stmt.defaultCase = next;
+            } else {
+                stmt.cases.put(value, next);
+            }
+        }
 
         return stmt;
     }

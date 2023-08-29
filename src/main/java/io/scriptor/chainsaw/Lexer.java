@@ -89,7 +89,34 @@ public class Lexer {
                 while (mEater.next() != '"') {
                     if (mEater.next() == '\n')
                         line++;
-                    string.append(mEater.eat());
+
+                    if (mEater.next() == '\\') {
+                        mEater.eat();
+
+                        switch (mEater.eat()) {
+
+                            case 't':
+                                string.append('\t');
+                                break;
+                            case 'b':
+                                string.append('\b');
+                                break;
+                            case 'n':
+                                string.append('\n');
+                                break;
+                            case 'r':
+                                string.append('\r');
+                                break;
+                            case 'f':
+                                string.append('\f');
+                                break;
+
+                            default:
+                                string.append(mEater.next(-1));
+                                break;
+                        }
+                    } else
+                        string.append(mEater.eat());
                 }
 
                 mEater.eat();
@@ -105,10 +132,40 @@ public class Lexer {
             if (c == '\'') {
                 StringBuilder character = new StringBuilder();
 
-                while (mEater.next() != '\'')
-                    character.append(mEater.eat());
+                while (mEater.next() != '\'') {
+                    if (mEater.next() == '\\') {
+                        mEater.eat();
+
+                        switch (mEater.eat()) {
+
+                            case 't':
+                                character.append('\t');
+                                break;
+                            case 'b':
+                                character.append('\b');
+                                break;
+                            case 'n':
+                                character.append('\n');
+                                break;
+                            case 'r':
+                                character.append('\r');
+                                break;
+                            case 'f':
+                                character.append('\f');
+                                break;
+
+                            default:
+                                character.append(mEater.next(-1));
+                                break;
+                        }
+                    } else
+                        character.append(mEater.eat());
+                }
 
                 mEater.eat();
+
+                if (character.length() != 1)
+                    error(line, "length of character must be exactly one: '%s'", character);
 
                 tokens.add(new Token()
                         .type(TokenType.CHAR)
@@ -258,7 +315,6 @@ public class Lexer {
 
     private static void error(int line, String fmt, Object... args) {
         String msg = String.format("at line %d: %s", line, fmt, args);
-        // System.err.println(msg);
         throw new RuntimeException(msg);
     }
 

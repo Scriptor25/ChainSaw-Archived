@@ -1,42 +1,94 @@
 ## Constants
- num infinity = inf();
- num pi = 3.1415926535897932385;
+
+num infinity = inf();
+num pi = 3.1415926535897932385;
+
+## Utility Functions
+
+degrees_to_radians: num << [degrees: num] {
+    ret degrees * pi / 180;
+}
 
 ## Things
- thing: vec3;
- thing: ray;
- thing: hit_record;
- thing: sphere;
- thing: hittable_list;
- thing: interval;
- thing: camera;
+
+thing: vec3;
+thing: ray;
+thing: hit_record;
+thing: sphere;
+thing: hittable_list;
+
+ray_color: vec3 << [r: ray, world: hittable_list] {
+    hit_record rec;
+    if (world.hit(r, 0, infinity, rec))
+        ret mul(0.5, add(rec.normal, vec3(1, 1, 1)));
+    
+    vec3 unit_direction = unit_vector(r.dir);
+    num a = 0.5 * (unit_direction.y + 1.0);
+    ret add(mul(1.0 - a, vec3(1.0, 1.0, 1.0)), mul(a, vec3(0.5, 0.7, 1.0)));
+}
 
 main: num {
+
+    ## Image
+
+    num aspect_ratio = 16 / 9;
+    num image_width = 256;
+
+    ## Calculate the image height, and ensure it's at least 1.
+    num image_height = floor(image_width / aspect_ratio);
+    image_height = (image_height < 1) ? 1 : image_height;
+
+    ## World
 
     hittable_list world = hittable_list();
 
     world.add(sphere(vec3(0, 0, -1), 0.5));
     world.add(sphere(vec3(0, -100.5, -1), 100));
 
-    camera cam;
+    ## Camera
 
-    cam.aspect_ratio = 16 / 9;
-    cam.image_width = 100;
-    cam.samples_per_pixel = 1;
+    num focal_length = 1.0;
+    num viewport_height = 2.0;
+    num viewport_width = viewport_height * (image_width / image_height);
+    vec3 camera_center = vec3(0, 0, 0);
 
-    cam.render(world);
+    ## Calculate the vectors across the horizontal and down the vertical viewport edges.
+    vec3 viewport_u = vec3(viewport_width, 0, 0);
+    vec3 viewport_v = vec3(0, -viewport_height, 0);
+
+    ## Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    vec3 pixel_delta_u = div(viewport_u, image_width);
+    vec3 pixel_delta_v = div(viewport_v, image_height);
+
+    ## Calculate the location of the upper left pixel.
+    vec3 viewport_upper_left = sub(sub(sub(camera_center, vec3(0, 0, focal_length)), div(viewport_u, 2)), div(viewport_v, 2));
+    vec3 pixel00_loc = add(viewport_upper_left, mul(0.5, add(pixel_delta_u, pixel_delta_v)));
+
+    ## Render
+
+    file f = file("output.ppm", "out");
+    f.out("P3\n%s %s\n255\n", image_width, image_height);
+
+    for (num j = 0; j < image_height; j++) {
+        out("\rScanlines remaining: %s ", image_height - j);
+        for (num i = 0; i < image_width; i++) {
+            vec3 pixel_center = add(add(pixel00_loc, mul(i, pixel_delta_u)), mul(j, pixel_delta_v));
+            vec3 ray_direction = sub(pixel_center, camera_center);
+            ray r = ray(camera_center, ray_direction);
+
+            vec3 pixel_color = ray_color(r, world);
+            write_color(f, pixel_color);
+        }
+    }
+
+    out("\rDone.                 \n");
+
+    f.close();
 
     ret 0;
 }
 
-degrees_to_radians: num << [degrees: num] {
-    ret degrees * pi / 180;
-}
-
-random: num << [min: num, max: num] {
-    ## Returns a random real in [min,max).
-    ret min + ((max - min) * random());
-}
+## VEC3
 
 thing: vec3 {
     x: num,
@@ -54,15 +106,17 @@ $vec3 << [x: num, y: num, z: num] {
     my.z = z;
 }
 
-e: num << [n: num] -> vec3 {
-    if (n == 0) ret my.x;
-    if (n == 1) ret my.y;
-    if (n == 2) ret my.z;
-    ret 0;
-}
-
 neg: vec3 -> vec3 {
     ret vec3(-my.x, -my.y, -my.z);
+}
+
+e: num << [i: num] -> vec3 {
+    switch (i) {
+        case 0: ret my.x;
+        case 1: ret my.y;
+        case 2: ret my.z;
+        default: ret 0;
+    }
 }
 
 add: vec3 << [v: vec3] -> vec3 {
@@ -88,42 +142,46 @@ length: num -> vec3 {
 }
 
 length_squared: num -> vec3 {
-    ret dot(my, my);
+    ret my.x * my.x + my.y * my.y + my.z * my.z;
 }
 
-add: vec3 << [a: vec3, b: vec3] {
-    ret vec3(a.x + b.x, a.y + b.y, a.z + b.z);
+out << [v: vec3] {
+    my.out("%s %s %s", v.x, v.y, v.z);
 }
 
-sub: vec3 << [a: vec3, b: vec3] {
-    ret vec3(a.x - b.x, a.y - b.y, a.z - b.z);
+add: vec3 << [u: vec3, v: vec3] {
+    ret vec3(u.x + v.x, u.y + v.y, u.z + v.z);
 }
 
-mul: vec3 << [a: vec3, b: vec3] {
-    ret vec3(a.x * b.x, a.y * b.y, a.z * b.z);
+sub: vec3 << [u: vec3, v: vec3] {
+    ret vec3(u.x - v.x, u.y - v.y, u.z - v.z);
 }
 
-mul: vec3 << [a: num, b: vec3] {
-    ret vec3(a * b.x, a * b.y, a * b.z);
+mul: vec3 << [u: vec3, v: vec3] {
+    ret vec3(u.x * v.x, u.y * v.y, u.z * v.z);
 }
 
-mul: vec3 << [a: vec3, b: num] {
-    ret mul(b, a);
+mul: vec3 << [t: num, v: vec3] {
+    ret vec3(t * v.x, t * v.y, t * v.z);
 }
 
-div: vec3 << [a: vec3, b: num] {
-    ret mul(a, 1 / b);
+mul: vec3 << [v: vec3, t: num] {
+    ret mul(t, v);
 }
 
-dot: num << [a: vec3, b: vec3] {
-    ret (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+div: vec3 << [v: vec3, t: num] {
+    ret mul(1 / t, v);
 }
 
-cross: vec3 << [a: vec3, b: vec3] {
+dot: num << [u: vec3, v: vec3] {
+    ret u.x * v.x + u.y * v.y + u.z * v.z;
+}
+
+cross: vec3 << [u: vec3, v: vec3] {
     ret vec3(
-        (a.y * b.z) - (a.z * b.y),
-        (a.z * b.x) - (a.x * b.z),
-        (a.x * b.y) - (a.y * b.x)
+        u.y * v.z - u.z * v.y,
+        u.z * v.x - u.x * v.z,
+        u.x * v.y - u.y * v.x
     );
 }
 
@@ -131,21 +189,12 @@ unit_vector: vec3 << [v: vec3] {
     ret div(v, v.length());
 }
 
-write_color << [f: file, pixel_color: vec3, samples_per_pixel: num] {
-    num r = pixel_color.x;
-    num g = pixel_color.y;
-    num b = pixel_color.z;
-
-    num scale = 1 / samples_per_pixel;
-    r *= scale;
-    g *= scale;
-    b *= scale;
-
-    interval intensity = interval(0, 0.999);
-    f.out("%s %s %s %n",
-        floor(256 * intensity.clamp(r)),
-        floor(256 * intensity.clamp(g)),
-        floor(256 * intensity.clamp(b))
+write_color << [f: file, pixel_color: vec3] {
+    f.out(
+        "%s %s %s\n", 
+        floor(255.999 * pixel_color.x),
+        floor(255.999 * pixel_color.y),
+        floor(255.999 * pixel_color.z)
     );
 }
 
@@ -154,9 +203,11 @@ thing: ray {
     dir: vec3,
 }
 
-$ray << [orig: vec3, dir: vec3] {
-    my.orig = orig;
-    my.dir = dir;
+$ray {}
+
+$ray << [origin: vec3, direction: vec3] {
+    my.orig = origin;
+    my.dir = direction;
 }
 
 at: vec3 << [t: num] -> ray {
@@ -178,7 +229,7 @@ set_face_normal << [r: ray, outward_normal: vec3] -> hit_record {
     my.normal = my.front_face ? outward_normal : outward_normal.neg();
 }
 
-copy << [rec: hit_record] -> hit_record {
+set << [rec: hit_record] -> hit_record {
     my.p = rec.p;
     my.normal = rec.normal;
     my.t = rec.t;
@@ -195,21 +246,21 @@ $sphere << [cen: vec3, rad: num] {
     my.radius = rad;
 }
 
-hit: num << [r: ray, ray_t: interval, rec: hit_record] -> sphere {
+hit: num << [r: ray, ray_tmin: num, ray_tmax: num, rec: hit_record] -> sphere {
     vec3 oc = sub(r.orig, my.center);
     num a = r.dir.length_squared();
     num half_b = dot(oc, r.dir);
-    num c = oc.length_squared() - (my.radius * my.radius);
+    num c = oc.length_squared() - my.radius * my.radius;
 
-    num discriminant = (half_b * half_b) - (a * c);
+    num discriminant = half_b * half_b - a * c;
     if (discriminant < 0) ret 0;
     num sqrtd = sqrt(discriminant);
 
     ## Find the nearest root that lies in the acceptable range.
-    num root = ((-half_b) - sqrtd) / a;
-    if (!(ray_t.surrounds(root))) {
-        root = ((-half_b) + sqrtd) / a;
-        if (!(ray_t.surrounds(root)))
+    num root = (-half_b - sqrtd) / a;
+    if (root <= ray_tmin || ray_tmax <= root) {
+        root = (-half_b + sqrtd) / a;
+        if (root <= ray_tmin || ray_tmax <= root)
             ret 0;
     }
 
@@ -222,166 +273,39 @@ hit: num << [r: ray, ray_t: interval, rec: hit_record] -> sphere {
 }
 
 thing: hittable_list {
-    objects: list
+    objects: list,
 }
 
 $hittable_list {
     my.objects = list();
 }
 
-$hittable_list << [object: sphere] {
-    my = hittable_list();
+$hittable_list << [object: void] {
+    my.objects = list();
     my.objects.add(object);
 }
 
-add << [object: sphere] -> hittable_list {
+clear -> hittable_list {
+    my.objects.clear();
+}
+
+add << [object: void] -> hittable_list {
     my.objects.add(object);
 }
 
-hit: num << [r: ray, ray_t: interval, rec: hit_record] -> hittable_list {
+hit: num << [r: ray, ray_tmin: num, ray_tmax: num, rec: hit_record] -> hittable_list {
     hit_record temp_rec;
     num hit_anything = 0;
-    num closest_so_far = ray_t.max;
+    num closest_so_far = ray_tmax;
 
     for (num i = 0; i < my.objects.size(); i++) {
         sphere object = my.objects.get(i);
-        if (object.hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
+        if (object.hit(r, ray_tmin, closest_so_far, temp_rec)) {
             hit_anything = 1;
             closest_so_far = temp_rec.t;
-            rec.copy(temp_rec);
+            rec.set(temp_rec);
         }
     }
 
     ret hit_anything;
-}
-
-thing: interval {
-    min: num,
-    max: num,
-}
-
-$interval {
-    my.min = infinity;
-    my.max = -infinity;
-}
-
-$interval << [min: num, max: num] {
-    my.min = min;
-    my.max = max;
-}
-
-contains: num << [x: num] -> interval {
-    ret (my.min <= x) && (x <= my.max);
-}
-
-surrounds: num << [x: num] -> interval {
-    ret (my.min < x) && (x < my.max);
-}
-
-clamp: num << [x: num] -> interval {
-    ret (x < my.min) ? my.min : (x > my.max) ? my.max : x;
-}
-
-empty: interval {
-    ret interval();
-}
-
-universe: interval {
-    ret interval(-infinity, infinity);
-}
-
-thing: camera {
-    aspect_ratio: num,      ## Ratio of image width over height
-    image_width: num,       ## Rendered image width in pixel count
-    samples_per_pixel: num, ## Count of random samples for each pixel
-                            ## 
-    image_height: num,      ## Rendered image height
-    center: vec3,           ## Camera center
-    pixel00_loc: vec3,      ## Location of pixel 0, 0
-    pixel_delta_u: vec3,    ## Offset to pixel to the right
-    pixel_delta_v: vec3,    ## Offset to pixel below
-}
-
-$camera {
-    my.aspect_ratio = 1.0;
-    my.image_width = 100;
-    my.samples_per_pixel = 10;
-}
-
-render << [world: hittable_list] -> camera {
-    out("render%n");
-    my.initialize();
-
-    file f = file("output.ppm", "out");
-    f.out("P3%n%s %s%n255%n", my.image_width, my.image_height);
-
-    for (num j = 0; j < my.image_height; j++) {
-        out("%rScanlines remaining: %s              ", my.image_height - j);
-        for (num i = 0; i < my.image_width; i++) {
-            vec3 pixel_color = vec3(0, 0, 0);
-            for (num sample = 0; sample < my.samples_per_pixel; sample++) {
-                ray r = my.get_ray(i, j);
-                pixel_color.add(my.ray_color(r, world));
-            }
-            write_color(f, pixel_color, my.samples_per_pixel);
-        }
-    }
-
-    out("%rDone.                          %n");
-
-    f.close();
-}
-
-initialize -> camera {
-    out("initialize%n");
-    my.image_height = floor(my.image_width / my.aspect_ratio);
-
-    my.center = vec3(0, 0, 0);
-
-    ## Determine viewport dimensions.
-    num focal_length = 1;
-    num viewport_height = 2;
-    num viewport_width = viewport_height * my.aspect_ratio;
-
-    ## Calculate the vectors across the horizontal and down the vertical viewport edges.
-    vec3 viewport_u = vec3(viewport_width, 0, 0);
-    vec3 viewport_v = vec3(0, -viewport_height, 0);
-
-    ## Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    my.pixel_delta_u = div(viewport_u, my.image_width);
-    my.pixel_delta_v = div(viewport_v, my.image_height);
-
-    ## Calculate the location of the upper left pixel.
-    vec3 viewport_upper_left = sub(sub(sub(my.center, vec3(0, 0, focal_length)), div(viewport_u, 2)), div(viewport_v, 2));
-    my.pixel00_loc = add(viewport_upper_left, mul(0.5, add(my.pixel_delta_u, my.pixel_delta_v)));
-}
-
-get_ray: ray << [i: num, j: num] -> camera {
-    ## Get a randomly sampled camera ray for the pixel at location i,j.
-
-    vec3 pixel_center = add(add(my.pixel00_loc, mul(i, my.pixel_delta_u)), mul(j, my.pixel_delta_v));
-    vec3 pixel_sample = add(pixel_center, my.pixel_sample_square());
-
-    vec3 ray_origin = my.center;
-    vec3 ray_direction = sub(pixel_sample, ray_origin);
-
-    ret ray(ray_origin, ray_direction);
-}
-
-pixel_sample_square: vec3 -> camera {
-    ## Returns a random point in the square surrounding a pixel at the origin.
-    num px = random() - 0.5;
-    num py = random() - 0.5;
-    ret add(mul(px, my.pixel_delta_u), mul(py, my.pixel_delta_v));
-}
-
-ray_color: vec3 << [r: ray, world: hittable_list] -> camera {
-    hit_record rec;
-
-    if (world.hit(r, interval(0, infinity), rec))
-        ret mul(0.5, add(rec.normal, vec3(1, 1, 1)));
-    
-    vec3 unit_direction = unit_vector(r.dir);
-    num a = 0.5 * (unit_direction.y + 1.0);
-    ret add(mul(1.0 - a, vec3(1.0, 1.0, 1.0)), mul(a, vec3(0.5, 0.7, 1.0)));
 }

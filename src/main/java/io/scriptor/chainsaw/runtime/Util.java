@@ -17,8 +17,4 @@ public class Util {
 
         return null;
     }
-
-    public static String format(String fmt, Object... args) {
-        return String.format(fmt.replaceAll("%r", "\r"), args);
-    }
 }

@@ -1,26 +1,23 @@
 package io.scriptor.chainsaw.runtime.function;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 
+import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.value.Value;
 
 public class NativeFuncBody extends FuncBody {
 
-    @FunctionalInterface
-    public static interface NativeFunc {
-        public Value run(Map<String, Value> args) throws Exception;
-    }
+    private transient Method func;
 
-    private transient NativeFunc func;
-
-    public NativeFuncBody(Function function, NativeFunc runnable) {
+    public NativeFuncBody(Function function, Method runnable) {
         super(function);
         this.func = runnable;
     }
 
-    public Value run(Map<String, Value> args) {
+    public Value run(Environment env, Map<String, Value> args) {
         try {
-            return func.run(args);
+            return (Value) func.invoke(null, env, args);
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);
