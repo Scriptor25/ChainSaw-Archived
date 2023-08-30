@@ -93,27 +93,22 @@ public class Interpreter {
         }
 
         if (body instanceof NativeFuncBody) {
-            Map<String, Value> arguments = new HashMap<>();
+            Map<String, Object> arguments = new HashMap<>();
 
             if (args != null) {
                 var params = ((FuncType) body.getFunction().getType()).getParams();
 
                 int arg = 0;
                 for (var param : params)
-                    arguments.put(param.id, args.get(arg++));
+                    arguments.put(param.id, Value.extract(args.get(arg++)).getValue());
 
                 int startArg = arg;
                 for (; arg < args.size(); arg++)
-                    arguments.put("vararg" + (arg - startArg), args.get(arg));
-
-                if (func.isConstructor())
-                    arguments.put("my", func.getType().getResult().emptyValue());
-
-                if (func.getMemberOf() != null)
-                    arguments.put("my", my);
+                    arguments.put("vararg" + (arg - startArg), Value.extract(args.get(arg)).getValue());
             }
 
-            return ((NativeFuncBody) body).run(environment, arguments);
+            var member = Value.extract(my);
+            return ((NativeFuncBody) body).run(environment, member != null ? member.getValue() : null, arguments);
         }
 
         return null;

@@ -14,7 +14,7 @@ class Main {
     public static void main(String[] args) throws IOException {
 
         var loader = Thread.currentThread().getContextClassLoader();
-        var stream = loader.getResourceAsStream("rtx.csaw");
+        var stream = loader.getResourceAsStream("test.csaw");
         var reader = new BufferedReader(new InputStreamReader(stream));
 
         var source = new StringBuilder();

@@ -1,5 +1,6 @@
 package io.scriptor.chainsaw.runtime.natives;
 
+import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Vector;
 
@@ -30,21 +31,26 @@ public class NativesCollector {
                 if (!func.isAnnotationPresent(CSawFunction.class))
                     continue;
 
-                var annotation = func.getAnnotation(CSawFunction.class);
-
                 List<FuncParam> params = new Vector<>();
-                for (var p : annotation.params()) {
-                    String[] parts = p.split(": +");
-                    params.add(new FuncParam(parts[0], Type.parseType(env, parts[1])));
+                for (var p : func.getParameters()) {
+                    if (p.isVarArgs()) {
+                        continue;
+                    }
+
+                    String id = p.getName();
+                    Class<?> type = p.getType();
+
+                    params.add(new FuncParam(id, Type.parseType(env, type)));
                 }
 
                 env.registerNativeFunction(
-                        annotation.id(),
-                        Type.parseType(env, annotation.result()),
+                        func.getName(),
+                        Type.parseType(env, func.getReturnType()),
                         params,
-                        annotation.vararg(),
-                        annotation.constructor(),
-                        Type.parseType(env, annotation.memberOf()),
+                        func.isVarArgs(),
+                        (func.getModifiers() & Modifier.STATIC) == 0
+                                ? Type.parseType(env, func.getDeclaringClass())
+                                : null,
                         func);
             }
         }

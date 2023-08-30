@@ -15,9 +15,24 @@ public class NativeFuncBody extends FuncBody {
         this.func = runnable;
     }
 
-    public Value run(Environment env, Map<String, Value> args) {
+    public Value run(Environment env, Object member, Map<String, Object> args) {
         try {
-            return (Value) func.invoke(null, env, args);
+            int pcount = func.getParameterCount();
+            var fparams = func.getParameters();
+            Object[] params = new Object[args.size()];
+            int i = 0;
+            for (; i < pcount; i++) {
+                if (fparams[i].isVarArgs()) {
+                    int startI = i;
+                    for (; i < params.length; i++)
+                        params[i] = args.get("vararg" + (i - startI));
+
+                    break;
+                }
+                params[i] = args.get(fparams[i].getName());
+            }
+
+            return Value.parseValue(env, func.invoke(member, params), function.getType().getResult());
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e);

@@ -5,21 +5,21 @@ import io.scriptor.chainsaw.runtime.type.StringType;
 
 public class StringValue extends Value {
 
-    private String value;
+    private CharSequence value;
 
-    public StringValue(Environment env, String value) {
+    public StringValue(Environment env, CharSequence value) {
         super(env, StringType.get(env));
         this.value = value;
     }
 
     @Override
-    public String getValue() {
+    public CharSequence getValue() {
         return value;
     }
 
     @Override
     public String toString() {
-        return value;
+        return value.toString();
     }
 
 }

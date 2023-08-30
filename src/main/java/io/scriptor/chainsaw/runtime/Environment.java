@@ -102,7 +102,6 @@ public class Environment {
             Type result,
             List<FuncParam> params,
             boolean vararg,
-            boolean constructor,
             Type memberOf,
             Method func) {
 
@@ -112,7 +111,7 @@ public class Environment {
                         result,
                         params,
                         vararg),
-                id, constructor, memberOf);
+                id, false, memberOf);
 
         function.setImpl(new NativeFuncBody(function, func));
     }

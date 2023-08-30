@@ -66,19 +66,47 @@ public abstract class Type {
             return null;
 
         switch (type) {
+            case "void":
+                return VoidType.get(env);
             case "num":
                 return NumberType.get(env);
             case "str":
                 return StringType.get(env);
-            case "void":
-                return VoidType.get(env);
         }
 
-        Type t = ThingType.get(env, type);
+        Type t = NativeType.get(env, type);
         if (t != null)
             return t;
 
-        t = NativeType.get(env, type);
+        t = ThingType.get(env, type);
+        if (t != null)
+            return t;
+
+        return Util.error("undefined Type '%s'", type);
+    }
+
+    public static Type parseType(Environment env, Class<?> type) {
+        if (type == null)
+            return null;
+
+        if (Void.class.isAssignableFrom(type)
+                || void.class.isAssignableFrom(type)
+                || Value.class.isAssignableFrom(type))
+            return VoidType.get(env);
+
+        if (Number.class.isAssignableFrom(type)
+                || byte.class.isAssignableFrom(type)
+                || short.class.isAssignableFrom(type)
+                || int.class.isAssignableFrom(type)
+                || long.class.isAssignableFrom(type)
+                || float.class.isAssignableFrom(type)
+                || double.class.isAssignableFrom(type))
+            return NumberType.get(env);
+
+        if (CharSequence.class.isAssignableFrom(type))
+            return StringType.get(env);
+
+        Type t = NativeType.get(env, type);
         if (t != null)
             return t;
 
