@@ -491,9 +491,9 @@ public class Parser {
     public Expr parseMemberExpr() {
         var expr = parsePrimaryExpr();
 
-        if (findAndEat(TokenType.PERIOD)) {
+        while (findAndEat(TokenType.PERIOD)) {
             var mexpr = new MemberExpr();
-            mexpr.thing = ((IdentExpr) expr).value;
+            mexpr.thing =  expr;
             mexpr.member = parseCallExpr();
             expr = mexpr;
         }

@@ -5,20 +5,17 @@ import java.util.Vector;
 
 public class Lexer {
 
-    private final StringEater mEater;
-
-    public Lexer(StringEater eater) {
-        this.mEater = eater;
+    private Lexer() {
     }
 
-    public List<Token> tokenize() {
-        mEater.reset();
+    public static List<Token> tokenize(String source) {
+        StringEater eater = new StringEater(source);
 
         List<Token> tokens = new Vector<>();
         int line = 1;
 
-        while (mEater.ok()) {
-            char c = mEater.eat();
+        while (eater.ok()) {
+            char c = eater.eat();
 
             // unused
             if (isIgnorable(c)) {
@@ -30,15 +27,15 @@ public class Lexer {
             // comment
             if (c == '#') {
                 // single line
-                if (mEater.next() == '#') {
-                    while (mEater.eat() != '\n')
+                if (eater.next() == '#') {
+                    while (eater.eat() != '\n')
                         ;
                     line++;
                     continue;
                 }
 
                 // multi
-                while ((c = mEater.eat()) != '#')
+                while ((c = eater.eat()) != '#')
                     if (c == '\n')
                         line++;
                 continue;
@@ -48,8 +45,8 @@ public class Lexer {
             if (isAlpha(c)) {
                 StringBuilder ident = new StringBuilder().append(c);
 
-                while (isAlnum(mEater.next()))
-                    ident.append(mEater.eat());
+                while (isAlnum(eater.next()))
+                    ident.append(eater.eat());
 
                 tokens.add(new Token()
                         .type(TokenType.IDENTIFIER)
@@ -60,11 +57,11 @@ public class Lexer {
             }
 
             // number
-            if (isDigit(c) || (c == '.' && isDigit(mEater.next()))) {
+            if (isDigit(c) || (c == '.' && isDigit(eater.next()))) {
                 boolean hasPeriod = c == '.';
                 StringBuilder num = new StringBuilder().append(c);
-                while (isDigit(mEater.next()) || mEater.next() == '.') {
-                    c = mEater.eat();
+                while (isDigit(eater.next()) || eater.next() == '.') {
+                    c = eater.eat();
                     if (c == '.') {
                         if (hasPeriod)
                             error(line, "too many period chars in number");
@@ -86,14 +83,14 @@ public class Lexer {
                 StringBuilder string = new StringBuilder();
                 int startLine = line;
 
-                while (mEater.next() != '"') {
-                    if (mEater.next() == '\n')
+                while (eater.next() != '"') {
+                    if (eater.next() == '\n')
                         line++;
 
-                    if (mEater.next() == '\\') {
-                        mEater.eat();
+                    if (eater.next() == '\\') {
+                        eater.eat();
 
-                        switch (mEater.eat()) {
+                        switch (eater.eat()) {
 
                             case 't':
                                 string.append('\t');
@@ -112,14 +109,14 @@ public class Lexer {
                                 break;
 
                             default:
-                                string.append(mEater.next(-1));
+                                string.append(eater.next(-1));
                                 break;
                         }
                     } else
-                        string.append(mEater.eat());
+                        string.append(eater.eat());
                 }
 
-                mEater.eat();
+                eater.eat();
 
                 tokens.add(new Token()
                         .type(TokenType.STRING)
@@ -132,11 +129,11 @@ public class Lexer {
             if (c == '\'') {
                 StringBuilder character = new StringBuilder();
 
-                while (mEater.next() != '\'') {
-                    if (mEater.next() == '\\') {
-                        mEater.eat();
+                while (eater.next() != '\'') {
+                    if (eater.next() == '\\') {
+                        eater.eat();
 
-                        switch (mEater.eat()) {
+                        switch (eater.eat()) {
 
                             case 't':
                                 character.append('\t');
@@ -155,14 +152,14 @@ public class Lexer {
                                 break;
 
                             default:
-                                character.append(mEater.next(-1));
+                                character.append(eater.next(-1));
                                 break;
                         }
                     } else
-                        character.append(mEater.eat());
+                        character.append(eater.eat());
                 }
 
-                mEater.eat();
+                eater.eat();
 
                 if (character.length() != 1)
                     error(line, "length of character must be exactly one: '%s'", character);

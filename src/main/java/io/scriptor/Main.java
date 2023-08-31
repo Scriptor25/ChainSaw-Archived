@@ -1,36 +1,55 @@
 package io.scriptor;
 
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 import io.scriptor.chainsaw.Lexer;
 import io.scriptor.chainsaw.Parser;
-import io.scriptor.chainsaw.StringEater;
 import io.scriptor.chainsaw.runtime.Interpreter;
 
 class Main {
 
     public static void main(String[] args) throws IOException {
 
-        var loader = Thread.currentThread().getContextClassLoader();
-        var stream = loader.getResourceAsStream("test.csaw");
-        var reader = new BufferedReader(new InputStreamReader(stream));
+        if (args.length == 0) { // interpreter shell
 
-        var source = new StringBuilder();
-        String line;
-        while ((line = reader.readLine()) != null)
-            source.append(line).append('\n');
+            var interpreter = new Interpreter();
+            while (true) {
 
-        var lexer = new Lexer(new StringEater(source.toString()));
-        var tokens = lexer.tokenize();
+                String source = System.console().readLine();
 
-        var parser = new Parser(tokens);
-        var program = parser.parseProgram();
+                if (source.equals("--exit"))
+                    break;
 
-        // System.out.println(program);
+                var tokens = Lexer.tokenize(source);
+                var parser = new Parser(tokens);
+                var program = parser.parseProgram();
 
-        var interpreter = new Interpreter(program);
-        interpreter.evaluate();
+                interpreter.evaluate(program);
+            }
+
+        } else if (args.length == 1) { // run file
+
+            String source = "";
+            try (var reader = new BufferedReader(new FileReader(args[0]))) {
+
+                var builder = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null)
+                    builder.append(line).append('\n');
+
+                source = builder.toString();
+            }
+
+            var tokens = Lexer.tokenize(source);
+            var parser = new Parser(tokens);
+            var program = parser.parseProgram();
+
+            var interpreter = new Interpreter();
+            interpreter.evaluate(program);
+
+        } else
+            System.out.println("Use 'csaw' to run the interpreter shell, or 'csaw <filepath>' to run a file");
     }
 }

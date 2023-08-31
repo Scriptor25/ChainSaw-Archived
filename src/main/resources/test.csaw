@@ -1,5 +1,1 @@
-main: num {
-    out("Hello World!\n");
-
-    ret 0;
-}
+#Hello World Program#main:num{out("Hello World!\n");ret 0;}
