@@ -1,5 +1,6 @@
 package io.scriptor.chainsaw;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
 
@@ -9,6 +10,9 @@ public class Lexer {
     }
 
     public static List<Token> tokenize(String source) {
+        if (source.trim().isEmpty())
+            return Collections.emptyList();
+
         StringEater eater = new StringEater(source);
 
         List<Token> tokens = new Vector<>();
@@ -28,14 +32,14 @@ public class Lexer {
             if (c == '#') {
                 // single line
                 if (eater.next() == '#') {
-                    while (eater.eat() != '\n')
+                    while (eater.ok() && eater.eat() != '\n')
                         ;
                     line++;
                     continue;
                 }
 
                 // multi
-                while ((c = eater.eat()) != '#')
+                while (eater.ok() && (c = eater.eat()) != '#')
                     if (c == '\n')
                         line++;
                 continue;
@@ -45,7 +49,7 @@ public class Lexer {
             if (isAlpha(c)) {
                 StringBuilder ident = new StringBuilder().append(c);
 
-                while (isAlnum(eater.next()))
+                while (eater.ok() && isAlnum(eater.next()))
                     ident.append(eater.eat());
 
                 tokens.add(new Token()
@@ -58,14 +62,14 @@ public class Lexer {
 
             // number
             if (isDigit(c) || (c == '.' && isDigit(eater.next()))) {
-                boolean hasPeriod = c == '.';
+                boolean isFloat = c == '.';
                 StringBuilder num = new StringBuilder().append(c);
-                while (isDigit(eater.next()) || eater.next() == '.') {
+                while (eater.ok() && (isDigit(eater.next()) || eater.next() == '.')) {
                     c = eater.eat();
                     if (c == '.') {
-                        if (hasPeriod)
+                        if (isFloat)
                             error(line, "too many period chars in number");
-                        hasPeriod = true;
+                        isFloat = true;
                     }
 
                     num.append(c);
@@ -83,7 +87,7 @@ public class Lexer {
                 StringBuilder string = new StringBuilder();
                 int startLine = line;
 
-                while (eater.next() != '"') {
+                while (eater.ok() && eater.next() != '"') {
                     if (eater.next() == '\n')
                         line++;
 
@@ -129,7 +133,7 @@ public class Lexer {
             if (c == '\'') {
                 StringBuilder character = new StringBuilder();
 
-                while (eater.next() != '\'') {
+                while (eater.ok() && eater.next() != '\'') {
                     if (eater.next() == '\\') {
                         eater.eat();
 

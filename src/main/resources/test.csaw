@@ -1,11 +1,11 @@
 # Hello World Program #
-main: num {
+main: number {
     out("Hello World!\n");
-    out("%s\n", hi("manfred"));
+    out("%s\n", hi("Manfred"));
 
     ret 0;
 }
 
-hi: str [name: str] -> test {
+hi: string [name: string] {
     ret "Hello, " + name + "!";
 }

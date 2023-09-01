@@ -28,15 +28,15 @@ class Main {
                     continue;
                 }
 
-                try {
-                    var tokens = Lexer.tokenize(source);
-                    var parser = new Parser(tokens);
-                    var program = parser.parseProgram();
+                var tokens = Lexer.tokenize(source);
+                if (tokens.isEmpty())
+                    continue;
+                var parser = new Parser(tokens);
+                var program = parser.parseProgram();
 
-                    System.out.println(interpreter.evaluate(program));
-                } catch (Exception e) {
-                    System.out.println("Runtime Error: " + e.getMessage());
-                }
+                var result = interpreter.evaluate(program);
+                if (result != null && result.getValue() != null)
+                    System.out.println(result);
             }
 
         } else if (args.length == 1) { // run file
@@ -58,6 +58,9 @@ class Main {
 
             var interpreter = new Interpreter();
             interpreter.evaluate(program);
+            var result = interpreter.evaluateFunction(null, "main");
+            if (result != null && result.getValue() != null)
+                System.out.println(result);
 
         } else
             System.out.println("Use 'csaw' to run the interpreter shell, or 'csaw <filepath>' to run a file");

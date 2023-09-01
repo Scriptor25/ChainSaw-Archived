@@ -5,6 +5,6 @@ import java.util.Vector;
 
 public class CallExpr extends Expr {
 
-    public String function;
+    public Expr function;
     public List<Expr> args = new Vector<>();
 }

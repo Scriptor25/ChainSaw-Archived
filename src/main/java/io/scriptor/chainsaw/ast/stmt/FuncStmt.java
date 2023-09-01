@@ -10,6 +10,6 @@ public class FuncStmt extends Stmt {
     public String type = null;
     public List<Param> params = new Vector<>();
     public boolean vararg = false;
-    public String memberOf = null;
+    public String member = null;
     public BodyStmt impl = null;
 }

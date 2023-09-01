@@ -26,6 +26,28 @@ public class Parser {
         return mTokens.get(mIndex + off);
     }
 
+    private boolean nextType(TokenType type) {
+        return nextType(0, type);
+    }
+
+    private boolean nextType(int off, TokenType type) {
+        if (!ok(off))
+            return false;
+
+        return next(off).type == type;
+    }
+
+    private boolean nextValue(String value) {
+        return nextValue(0, value);
+    }
+
+    private boolean nextValue(int off, String value) {
+        if (!ok(off))
+            return false;
+
+        return next(off).value.equals(value);
+    }
+
     private Token eat() {
         if (!ok())
             return null;
@@ -85,7 +107,7 @@ public class Parser {
     }
 
     private boolean findAndEat(String value) {
-        if (!(ok() && next().value.equals(value)))
+        if (!(ok() && nextValue(value)))
             return false;
 
         eat();
@@ -117,7 +139,7 @@ public class Parser {
 
     public void parseParams(List<Param> params) {
         do {
-            if (next().type != TokenType.IDENTIFIER)
+            if (!nextType(TokenType.IDENTIFIER))
                 break;
             params.add(parseParam());
         } while (findAndEat(TokenType.COMMA));
@@ -135,47 +157,44 @@ public class Parser {
 
     public Stmt parseStmt() {
 
-        if (next().type == TokenType.SEMICOLON)
+        if (nextType(TokenType.SEMICOLON))
             return null;
 
-        if (next().type == TokenType.BRACE_OPEN)
+        if (nextType(TokenType.BRACE_OPEN))
             return parseBodyStmt();
 
-        if (next().value.equals("thing"))
+        if (nextValue("thing"))
             return parseThingStmt();
 
-        if (next().value.equals("if"))
+        if (nextValue("if"))
             return parseIfStmt();
 
-        if (next().value.equals("switch"))
+        if (nextValue("switch"))
             return parseSwitchStmt();
 
-        if (next().value.equals("while"))
+        if (nextValue("while"))
             return parseWhileStmt();
 
-        if (next().value.equals("for"))
+        if (nextValue("for"))
             return parseForStmt();
 
-        if (next().value.equals("ret"))
+        if (nextValue("ret"))
             return parseRetStmt();
 
-        if (next().type.equals(TokenType.IDENTIFIER) && next(1).type.equals(TokenType.IDENTIFIER))
-            return parseValStmt();
+        if (nextType(TokenType.IDENTIFIER) && nextType(1, TokenType.IDENTIFIER))
+            return parseVarStmt();
 
-        // functions and constructors
-
-        if (next().type == TokenType.DOLLAR ||
-                (next().type == TokenType.IDENTIFIER &&
-                        (next(1).type == TokenType.BRACE_OPEN || // hi {...}
-                                next(1).type == TokenType.BRACKET_OPEN || // hi [...]
-                                next(1).type == TokenType.SEMICOLON || // hi;
-                                (next(1).type == TokenType.MINUS && next(2).type == TokenType.GREATER) || // hi -> ...
-                                (next(1).type == TokenType.COLON && next(2).type == TokenType.IDENTIFIER)))) // hi: num
-                                                                                                             // ...
+        if (nextType(TokenType.DOLLAR) ||
+                (nextType(TokenType.IDENTIFIER) &&
+                        (nextType(1, TokenType.BRACE_OPEN) ||
+                                nextType(1, TokenType.BRACKET_OPEN) ||
+                                nextType(1, TokenType.SEMICOLON) ||
+                                (nextType(1, TokenType.MINUS) && nextType(2, TokenType.GREATER)) ||
+                                (nextType(1, TokenType.COLON) && nextType(2, TokenType.IDENTIFIER)))))
             return parseFuncStmt();
 
         var expr = parseExpr();
-        if (next().type != TokenType.PAREN_CLOSE)
+        if (!nextType(TokenType.PAREN_CLOSE))
             expect(TokenType.SEMICOLON);
 
         return expr;
@@ -214,12 +233,12 @@ public class Parser {
             parseParams(stmt.params);
             expect(TokenType.BRACKET_CLOSE);
         }
-        if (next().value.equals("var")) { // vararg
+        if (nextValue("var")) { // vararg
             eat();
             stmt.vararg = true;
         }
-        if (findAndEat(TokenType.MINUS, TokenType.GREATER)) { // thing type
-            stmt.memberOf = expect(TokenType.IDENTIFIER).value;
+        if (findAndEat(TokenType.MINUS, TokenType.GREATER)) { // member
+            stmt.member = expect(TokenType.IDENTIFIER).value;
         }
         if (findAndEat(TokenType.SEMICOLON))
             return stmt;
@@ -314,13 +333,16 @@ public class Parser {
 
     public RetStmt parseRetStmt() {
         expect("ret");
+        if (findAndEat(TokenType.SEMICOLON))
+            return new RetStmt(null);
+
         var value = parseExpr();
         expect(TokenType.SEMICOLON);
         return new RetStmt(value);
     }
 
-    public ValStmt parseValStmt() {
-        var stmt = new ValStmt();
+    public VarStmt parseVarStmt() {
+        var stmt = new VarStmt();
 
         stmt.type = expect(TokenType.IDENTIFIER).value;
         stmt.ident = expect(TokenType.IDENTIFIER).value;
@@ -398,13 +420,13 @@ public class Parser {
     public Expr parseCmpBinaryExpr() {
         var left = parseSumBinaryExpr();
 
-        if ((next().type == TokenType.EQUAL &&
-                next(1).type == TokenType.EQUAL) ||
-                next().type == TokenType.LESS ||
-                next().type == TokenType.GREATER) {
+        if ((nextType(TokenType.EQUAL) &&
+                nextType(1, TokenType.EQUAL)) ||
+                nextType(TokenType.LESS) ||
+                nextType(TokenType.GREATER)) {
 
             var operator = eat().value;
-            if (operator.equals("=") || next().type == TokenType.EQUAL)
+            if (operator.equals("=") || nextType(TokenType.EQUAL))
                 operator += expect(TokenType.EQUAL).value;
 
             var right = parseExpr();
@@ -418,7 +440,7 @@ public class Parser {
     public Expr parseSumBinaryExpr() {
         var left = parseProBinaryExpr();
 
-        if (next().type == TokenType.PLUS || next().type == TokenType.MINUS) {
+        if (nextType(TokenType.PLUS) || nextType(TokenType.MINUS)) {
 
             var operator = eat().value;
             boolean assign = findAndEat(TokenType.EQUAL);
@@ -436,7 +458,7 @@ public class Parser {
     public Expr parseProBinaryExpr() {
         var left = parseUnaryExpr();
 
-        if (next().type == TokenType.ASTER || next().type == TokenType.SLASH) {
+        if (nextType(TokenType.ASTER) || nextType(TokenType.SLASH)) {
 
             var operator = eat().value;
             boolean assign = findAndEat(TokenType.EQUAL);
@@ -454,8 +476,8 @@ public class Parser {
     public Expr parseUnaryExpr() {
         var expr = parseCallExpr();
 
-        if ((next().type == TokenType.PLUS && next(1).type == TokenType.PLUS) ||
-                next().type == TokenType.MINUS && next(1).type == TokenType.MINUS) {
+        if ((nextType(TokenType.PLUS) && nextType(1, TokenType.PLUS)) ||
+                (nextType(TokenType.MINUS) && nextType(1, TokenType.MINUS))) {
 
             var operator = eat().value;
             expect(operator);
@@ -471,10 +493,10 @@ public class Parser {
 
         if (findAndEat(TokenType.PAREN_OPEN)) {
             var cexpr = new CallExpr();
-            cexpr.function = ((IdentExpr) expr).value;
+            cexpr.function = expr;
 
             do {
-                if (next().type == TokenType.PAREN_CLOSE)
+                if (nextType(TokenType.PAREN_CLOSE))
                     break;
                 cexpr.args.add(parseExpr());
             } while (findAndEat(TokenType.COMMA));
