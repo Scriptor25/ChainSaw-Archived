@@ -6,10 +6,18 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Main",
+            "name": "CSaw Shell",
             "request": "launch",
             "mainClass": "io.scriptor.Main",
             "projectName": "chainsaw"
+        },
+        {
+            "type": "java",
+            "name": "CSaw Test",
+            "request": "launch",
+            "mainClass": "io.scriptor.Main",
+            "projectName": "chainsaw",
+            "args": ["src/main/resources/test.csaw"]
         }
     ]
 }

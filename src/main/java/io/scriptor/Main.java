@@ -17,16 +17,26 @@ class Main {
             var interpreter = new Interpreter();
             while (true) {
 
+                System.out.print(">> ");
                 String source = System.console().readLine();
 
                 if (source.equals("--exit"))
                     break;
+                if (source.equals("--clear")) {
+                    System.out.print("\033[H\033[2J");
+                    System.out.flush();
+                    continue;
+                }
 
-                var tokens = Lexer.tokenize(source);
-                var parser = new Parser(tokens);
-                var program = parser.parseProgram();
+                try {
+                    var tokens = Lexer.tokenize(source);
+                    var parser = new Parser(tokens);
+                    var program = parser.parseProgram();
 
-                interpreter.evaluate(program);
+                    System.out.println(interpreter.evaluate(program));
+                } catch (Exception e) {
+                    System.out.println("Runtime Error: " + e.getMessage());
+                }
             }
 
         } else if (args.length == 1) { // run file

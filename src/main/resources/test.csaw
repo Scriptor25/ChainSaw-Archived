@@ -1,1 +1,11 @@
-#Hello World Program#main:num{out("Hello World!\n");ret 0;}
+# Hello World Program #
+main: num {
+    out("Hello World!\n");
+    out("%s\n", hi("manfred"));
+
+    ret 0;
+}
+
+hi: str [name: str] -> test {
+    ret "Hello, " + name + "!";
+}

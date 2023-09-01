@@ -164,16 +164,15 @@ public class Parser {
 
         // functions and constructors
 
-        if (findAndEat(TokenType.DOLLAR))
-            return parseFuncStmt(true);
-
-        if (next().type == TokenType.IDENTIFIER &&
-                (next(1).type == TokenType.BRACE_OPEN ||
-                        next(1).type == TokenType.SEMICOLON ||
-                        (next(1).type == TokenType.MINUS && next(2).type == TokenType.GREATER) ||
-                        (next(1).type == TokenType.COLON && next(2).type == TokenType.IDENTIFIER) ||
-                        (next(1).type == TokenType.LESS && next(2).type == TokenType.LESS)))
-            return parseFuncStmt(false);
+        if (next().type == TokenType.DOLLAR ||
+                (next().type == TokenType.IDENTIFIER &&
+                        (next(1).type == TokenType.BRACE_OPEN || // hi {...}
+                                next(1).type == TokenType.BRACKET_OPEN || // hi [...]
+                                next(1).type == TokenType.SEMICOLON || // hi;
+                                (next(1).type == TokenType.MINUS && next(2).type == TokenType.GREATER) || // hi -> ...
+                                (next(1).type == TokenType.COLON && next(2).type == TokenType.IDENTIFIER)))) // hi: num
+                                                                                                             // ...
+            return parseFuncStmt();
 
         var expr = parseExpr();
         if (next().type != TokenType.PAREN_CLOSE)
@@ -201,18 +200,17 @@ public class Parser {
         return stmt;
     }
 
-    public FuncStmt parseFuncStmt(boolean constructor) {
+    public FuncStmt parseFuncStmt() {
         var stmt = new FuncStmt();
 
+        stmt.constructor = findAndEat(TokenType.DOLLAR);
         stmt.ident = expect(TokenType.IDENTIFIER).value;
-        stmt.constructor = constructor;
         if (findAndEat(TokenType.COLON)) { // return type
-            if (constructor)
+            if (stmt.constructor)
                 return error(next().line, "constructor must not have a type specified");
             stmt.type = expect(TokenType.IDENTIFIER).value;
         }
-        if (findAndEat(TokenType.LESS, TokenType.LESS)) { // parameters
-            expect(TokenType.BRACKET_OPEN);
+        if (findAndEat(TokenType.BRACKET_OPEN)) { // parameters
             parseParams(stmt.params);
             expect(TokenType.BRACKET_CLOSE);
         }
@@ -462,7 +460,7 @@ public class Parser {
             var operator = eat().value;
             expect(operator);
 
-            expr = new AssignExpr(expr, new BinaryExpr(expr, new ConstExpr("1", ConstType.NUMBER), operator));
+            expr = new AssignExpr(expr, new BinaryExpr(expr, new ConstExpr("1", ConstExpr.ConstType.NUMBER), operator));
         }
 
         return expr;
@@ -493,7 +491,7 @@ public class Parser {
 
         while (findAndEat(TokenType.PERIOD)) {
             var mexpr = new MemberExpr();
-            mexpr.thing =  expr;
+            mexpr.thing = expr;
             mexpr.member = parseCallExpr();
             expr = mexpr;
         }
@@ -507,12 +505,12 @@ public class Parser {
         switch (token.type) {
             case IDENTIFIER:
                 return new IdentExpr(token.value);
-            case STRING:
-                return new ConstExpr(token.value, ConstType.STRING);
             case NUMBER:
-                return new ConstExpr(token.value, ConstType.NUMBER);
+                return new ConstExpr(token.value, ConstExpr.ConstType.NUMBER);
             case CHAR:
-                return new ConstExpr(token.value, ConstType.CHAR);
+                return new ConstExpr(token.value, ConstExpr.ConstType.CHAR);
+            case STRING:
+                return new ConstExpr(token.value, ConstExpr.ConstType.STRING);
             case PAREN_OPEN: {
                 var expr = parseExpr();
                 expect(TokenType.PAREN_CLOSE);
@@ -522,6 +520,8 @@ public class Parser {
                 return new UnaryExpr("-", parseExpr());
             case EXCLAM:
                 return new UnaryExpr("!", parseExpr());
+            case TILDE:
+                return new UnaryExpr("~", parseExpr());
 
             default:
                 return error(token.line, "undefined token type '%s' ('%s')", token.type, token.value);
