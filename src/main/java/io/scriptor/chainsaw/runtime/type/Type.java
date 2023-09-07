@@ -31,11 +31,11 @@ public abstract class Type {
     }
 
     public boolean isThing() {
-        return false;
+        return this instanceof ThingType;
     }
 
     public boolean isNative() {
-        return false;
+        return this instanceof NativeType;
     }
 
     public static Type parseType(Environment env, String str) {

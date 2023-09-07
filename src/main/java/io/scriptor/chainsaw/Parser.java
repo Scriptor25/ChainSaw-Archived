@@ -491,7 +491,7 @@ public class Parser {
     public Expr parseCallExpr() {
         var expr = parseMemberExpr();
 
-        if (findAndEat(TokenType.PAREN_OPEN)) {
+        while (findAndEat(TokenType.PAREN_OPEN)) {
             var cexpr = new CallExpr();
             cexpr.function = expr;
 
@@ -503,6 +503,13 @@ public class Parser {
             expect(TokenType.PAREN_CLOSE);
 
             expr = cexpr;
+
+            if (findAndEat(TokenType.PERIOD)) {
+                var mexpr = new MemberExpr();
+                mexpr.thing = cexpr;
+                mexpr.member = parseCallExpr();
+                expr = mexpr;
+            }
         }
 
         return expr;
@@ -514,7 +521,7 @@ public class Parser {
         while (findAndEat(TokenType.PERIOD)) {
             var mexpr = new MemberExpr();
             mexpr.thing = expr;
-            mexpr.member = parseCallExpr();
+            mexpr.member = parseMemberExpr();
             expr = mexpr;
         }
 

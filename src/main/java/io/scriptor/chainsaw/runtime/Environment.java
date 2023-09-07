@@ -56,7 +56,7 @@ public class Environment {
         Function.get(this, false, "inf", NumberType.get(this), Collections.emptyList(), false, null, new NativeImpl(
                 env -> new NumberValue(env, Double.MAX_VALUE)));
 
-        params.clear();
+        params = new Vector<>();
         params.add(new Pair<>("x", NumberType.get(this)));
         Function.get(this, false, "floor", NumberType.get(this), params, false, null, new NativeImpl(
                 env -> new NumberValue(env, Math.floor((double) env.getVariable("x").getValue()))));

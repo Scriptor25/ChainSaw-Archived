@@ -3,9 +3,52 @@ main: number {
     out("Hello World!\n");
     out("%s\n", hi("Manfred"));
 
-    ret 0;
+    test hello = test();
+    joint j;
+
+    j.stuff();
+
+    ret hello.world.its.me.mario().doing.stuff().hi = 10;
 }
 
 hi: string [name: string] {
     ret "Hello, " + name + "!";
+}
+
+thing: cat {
+    hi: string,
+}
+
+thing: joint {
+    run: cat,
+}
+
+thing: nope {
+    doing: joint,
+}
+
+thing: inst {
+    mario: nope,
+}
+
+thing: human {
+    me: inst,
+}
+
+thing: other {
+    its: human,
+}
+
+thing: test {
+    world: other,
+}
+
+$test {}
+
+mario: nope -> inst {
+    ret my.mario;
+}
+
+stuff: cat -> joint {
+    ret my.run;
 }

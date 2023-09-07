@@ -200,8 +200,7 @@ public class Interpreter {
     }
 
     public Value evaluate(IfStmt stmt) {
-        System.out.println("IfStmt");
-        return null;
+        return Error.error("not yet implemented");
     }
 
     public Value evaluate(RetStmt stmt) {
@@ -213,8 +212,7 @@ public class Interpreter {
     }
 
     public Value evaluate(SwitchStmt stmt) {
-        System.out.println("SwitchStmt");
-        return null;
+        return Error.error("not yet implemented");
     }
 
     public Value evaluate(ThingStmt stmt) {
@@ -240,8 +238,7 @@ public class Interpreter {
     }
 
     public Value evaluate(WhileStmt stmt) {
-        System.out.println("WhileStmt");
-        return null;
+        return Error.error("not yet implemented");
     }
 
     public Value evaluate(Expr expr) {
@@ -271,7 +268,17 @@ public class Interpreter {
         if (expr.assigne instanceof IdentExpr)
             return mEnv.updateVariable(((IdentExpr) expr.assigne).value, Value.extract(evaluate(expr.value)));
 
-        return null;
+        if (expr.assigne instanceof MemberExpr) {
+            var assigne = (MemberExpr) expr.assigne;
+            if (assigne.thing instanceof CallExpr) {
+                var result = evaluate(assigne.thing);
+                if (result.isThing())
+                    if (assigne.member instanceof IdentExpr)
+                        ((ThingValue) result).setField(((IdentExpr) assigne.member).value, evaluate(expr.value));
+            }
+        }
+
+        return Error.error("not yet implemented");
     }
 
     public Value evaluate(BinaryExpr expr) {
@@ -321,6 +328,12 @@ public class Interpreter {
         if (expr.function instanceof IdentExpr)
             return evaluateFunction(null, ((IdentExpr) expr.function).value, args);
 
+        if (expr.function instanceof MemberExpr) {
+            var mexpr = (MemberExpr) expr.function;
+            if (mexpr.isHead())
+                return evaluateFunction(evaluate(mexpr.thing), ((IdentExpr) mexpr.member).value, args);
+        }
+
         return Error.error("not yet implemented");
     }
 
@@ -346,18 +359,28 @@ public class Interpreter {
     }
 
     public Value evaluate(IdentExpr expr) {
-        var value = mEnv.getVariable(expr.value);
-        return value == null ? Error.error("undefined variable '%s'", expr.value) : value;
+        return mEnv.getVariable(expr.value);
     }
 
     public Value evaluate(MemberExpr expr) {
-        System.out.println("MemberExpr");
-        return null;
+
+        String thing = null;
+        if (expr.thing instanceof IdentExpr)
+            thing = ((IdentExpr) expr.thing).value;
+
+        String member = null;
+        if (expr.member instanceof IdentExpr)
+            member = ((IdentExpr) expr.member).value;
+
+        if (thing == null || member == null)
+            return Error.error("not yet implemented");
+
+        ThingValue vthing = mEnv.getVariable(thing);
+        return vthing.getField(member);
     }
 
     public Value evaluate(UnaryExpr expr) {
-        System.out.println("UnaryExpr");
-        return null;
+        return Error.error("not yet implemented");
     }
 
 }
