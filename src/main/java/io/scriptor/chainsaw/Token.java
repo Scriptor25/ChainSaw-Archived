@@ -1,6 +1,6 @@
 package io.scriptor.chainsaw;
 
-import static io.scriptor.chainsaw.Constants.*;
+import static io.scriptor.chainsaw.Constants.GSON;
 
 public class Token {
 

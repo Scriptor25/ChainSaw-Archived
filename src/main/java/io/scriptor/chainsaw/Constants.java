@@ -1,9 +1,9 @@
 package io.scriptor.chainsaw;
 
-import java.lang.reflect.Modifier;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import java.lang.reflect.Modifier;
 
 public class Constants {
 

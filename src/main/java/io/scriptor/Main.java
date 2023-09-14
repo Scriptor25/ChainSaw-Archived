@@ -1,12 +1,12 @@
 package io.scriptor;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-
 import io.scriptor.chainsaw.Lexer;
 import io.scriptor.chainsaw.Parser;
 import io.scriptor.chainsaw.runtime.Interpreter;
+
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 
 class Main {
 

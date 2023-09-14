@@ -1,23 +1,14 @@
 package io.scriptor.chainsaw.runtime;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
-
 import io.scriptor.chainsaw.runtime.function.Function;
 import io.scriptor.chainsaw.runtime.function.NativeImpl;
 import io.scriptor.chainsaw.runtime.function.Pair;
-import io.scriptor.chainsaw.runtime.type.NativeType;
-import io.scriptor.chainsaw.runtime.type.NumberType;
-import io.scriptor.chainsaw.runtime.type.StringType;
-import io.scriptor.chainsaw.runtime.type.ThingType;
-import io.scriptor.chainsaw.runtime.type.Type;
-import io.scriptor.chainsaw.runtime.type.VoidType;
+import io.scriptor.chainsaw.runtime.type.*;
 import io.scriptor.chainsaw.runtime.value.NumberValue;
 import io.scriptor.chainsaw.runtime.value.StringValue;
 import io.scriptor.chainsaw.runtime.value.Value;
+
+import java.util.*;
 
 public class Environment {
 

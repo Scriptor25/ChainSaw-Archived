@@ -1,8 +1,8 @@
 package io.scriptor.chainsaw.runtime.value;
 
-import io.scriptor.chainsaw.runtime.type.Type;
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.Error;
+import io.scriptor.chainsaw.runtime.type.Type;
 
 public abstract class Value {
 

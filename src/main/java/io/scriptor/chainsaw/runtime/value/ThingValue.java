@@ -1,11 +1,11 @@
 package io.scriptor.chainsaw.runtime.value;
 
+import io.scriptor.chainsaw.runtime.Error;
+import io.scriptor.chainsaw.runtime.type.ThingType;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-
-import io.scriptor.chainsaw.runtime.Error;
-import io.scriptor.chainsaw.runtime.type.ThingType;
 
 public class ThingValue extends Value {
 

@@ -1,10 +1,10 @@
 package io.scriptor.chainsaw.runtime.function;
 
-import java.util.Collections;
-import java.util.List;
-
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.type.Type;
+
+import java.util.Collections;
+import java.util.List;
 
 public class Function {
 

@@ -1,9 +1,9 @@
 package io.scriptor.chainsaw.ast.stmt;
 
+import io.scriptor.chainsaw.ast.expr.Expr;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import io.scriptor.chainsaw.ast.expr.Expr;
 
 public class SwitchStmt extends Stmt {
 

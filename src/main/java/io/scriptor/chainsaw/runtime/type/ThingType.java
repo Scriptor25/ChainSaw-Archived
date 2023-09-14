@@ -1,12 +1,12 @@
 package io.scriptor.chainsaw.runtime.type;
 
-import java.util.Collections;
-import java.util.Map;
-
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.Error;
 import io.scriptor.chainsaw.runtime.value.ThingValue;
 import io.scriptor.chainsaw.runtime.value.Value;
+
+import java.util.Collections;
+import java.util.Map;
 
 public class ThingType extends Type {
 

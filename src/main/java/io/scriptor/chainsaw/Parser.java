@@ -1,11 +1,11 @@
 package io.scriptor.chainsaw;
 
-import java.util.List;
-import java.util.Vector;
-
-import io.scriptor.chainsaw.ast.*;
+import io.scriptor.chainsaw.ast.Program;
 import io.scriptor.chainsaw.ast.expr.*;
 import io.scriptor.chainsaw.ast.stmt.*;
+
+import java.util.List;
+import java.util.Vector;
 
 public class Parser {
 

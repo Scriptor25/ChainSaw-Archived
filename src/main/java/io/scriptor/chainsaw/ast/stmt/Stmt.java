@@ -1,6 +1,6 @@
 package io.scriptor.chainsaw.ast.stmt;
 
-import static io.scriptor.chainsaw.Constants.*;
+import static io.scriptor.chainsaw.Constants.PGSON;
 
 public abstract class Stmt {
 
