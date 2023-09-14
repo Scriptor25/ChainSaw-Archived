@@ -18,7 +18,7 @@ class Main {
             while (true) {
 
                 System.out.print(">> ");
-                String source = System.console().readLine();
+                String source = System.console().readLine().trim();
 
                 if (source.equals("--exit"))
                     break;

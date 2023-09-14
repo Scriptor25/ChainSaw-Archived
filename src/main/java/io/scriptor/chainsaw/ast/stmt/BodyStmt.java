@@ -5,5 +5,5 @@ import java.util.Vector;
 
 public class BodyStmt extends Stmt {
 
-    public List<Stmt> stmts = new Vector<>();
+    public List<Stmt> statements = new Vector<>();
 }

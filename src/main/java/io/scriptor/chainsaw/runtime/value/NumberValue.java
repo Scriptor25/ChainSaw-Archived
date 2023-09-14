@@ -18,6 +18,12 @@ public class NumberValue extends Value {
     }
 
     @Override
+    public NumberValue setValue(Object value) {
+        mValue = (double) value;
+        return this;
+    }
+
+    @Override
     public boolean equals(Object other) {
         return super.equals(other) && ((NumberValue) other).mValue == mValue;
     }

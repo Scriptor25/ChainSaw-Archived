@@ -1,5 +1,8 @@
 package io.scriptor.chainsaw.runtime.value;
 
+import java.util.List;
+import java.util.Vector;
+
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.Error;
 import io.scriptor.chainsaw.runtime.type.Type;
@@ -17,6 +20,8 @@ public abstract class Value {
     }
 
     public abstract Object getValue();
+
+    public abstract Value setValue(Object value);
 
     public boolean isVoid() {
         return getType().isVoid();
@@ -77,7 +82,7 @@ public abstract class Value {
             return false;
 
         if (value instanceof NumberValue) {
-            if (((NumberValue) value).getValue() == 0)
+            if ((double) value.getValue() == 0)
                 return false;
         } else if (value instanceof CharValue) {
             if (((CharValue) value).getValue() == 0)
@@ -93,59 +98,145 @@ public abstract class Value {
 
     public static boolean less(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
-            return ((NumberValue) left).getValue() < ((NumberValue) right).getValue();
+            return (double) left.getValue() < (double) right.getValue();
 
         return Error.error("operator '<' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static boolean greater(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
-            return ((NumberValue) left).getValue() > ((NumberValue) right).getValue();
+            return (double) left.getValue() > (double) right.getValue();
 
         return Error.error("operator '>' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static boolean lessEq(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
-            return ((NumberValue) left).getValue() <= ((NumberValue) right).getValue();
+            return (double) left.getValue() <= (double) right.getValue();
 
         return Error.error("operator '<=' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static boolean greaterEq(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
-            return ((NumberValue) left).getValue() >= ((NumberValue) right).getValue();
+            return (double) left.getValue() >= (double) right.getValue();
 
         return Error.error("operator '>=' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
-    public static Value add(Environment env, Value left, Value right) {
+    public static Value add(Environment env, Value left, Value right, boolean assigning) {
         if (left.isNumber() && right.isNumber())
-            return new NumberValue(env, ((NumberValue) left).getValue() + ((NumberValue) right).getValue());
+            return new NumberValue(env, (double) left.getValue() + (double) right.getValue());
         if (left.isString() || right.isString())
             return new StringValue(env, left.toString() + right.toString());
+
+        Value thing = null;
+        String name = "+";
+        List<Value> args = new Vector<>();
+        if (assigning) {
+            thing = left;
+            name += "=";
+            args.add(right);
+        } else {
+            args.add(left);
+            args.add(right);
+        }
+
+        final var func = env.getFunction(thing, name, args.toArray(new Value[0]));
+        if (func != null)
+            return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
         return Error.error("operator '+' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
-    public static Value sub(Environment env, Value left, Value right) {
+    public static Value sub(Environment env, Value left, Value right, boolean assigning) {
         if (left.isNumber() && right.isNumber())
-            return new NumberValue(env, ((NumberValue) left).getValue() - ((NumberValue) right).getValue());
+            return new NumberValue(env, (double) left.getValue() - (double) right.getValue());
+
+        Value thing = null;
+        String name = "-";
+        List<Value> args = new Vector<>();
+        if (assigning) {
+            thing = left;
+            name += "=";
+            args.add(right);
+        } else {
+            args.add(left);
+            args.add(right);
+        }
+
+        final var func = env.getFunction(thing, name, args.toArray(new Value[0]));
+        if (func != null)
+            return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
         return Error.error("operator '-' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
-    public static Value mul(Environment env, Value left, Value right) {
+    public static Value mul(Environment env, Value left, Value right, boolean assigning) {
         if (left.isNumber() && right.isNumber())
-            return new NumberValue(env, ((NumberValue) left).getValue() * ((NumberValue) right).getValue());
+            return new NumberValue(env, (double) left.getValue() * (double) right.getValue());
+
+        Value thing = null;
+        String name = "*";
+        List<Value> args = new Vector<>();
+        if (assigning) {
+            thing = left;
+            name += "=";
+            args.add(right);
+        } else {
+            args.add(left);
+            args.add(right);
+        }
+
+        final var func = env.getFunction(thing, name, args.toArray(new Value[0]));
+        if (func != null)
+            return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
         return Error.error("operator '*' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
-    public static Value div(Environment env, Value left, Value right) {
+    public static Value div(Environment env, Value left, Value right, boolean assigning) {
         if (left.isNumber() && right.isNumber())
-            return new NumberValue(env, ((NumberValue) left).getValue() / ((NumberValue) right).getValue());
+            return new NumberValue(env, (double) left.getValue() / (double) right.getValue());
+
+        Value thing = null;
+        String name = "/";
+        List<Value> args = new Vector<>();
+        if (assigning) {
+            thing = left;
+            name += "=";
+            args.add(right);
+        } else {
+            args.add(left);
+            args.add(right);
+        }
+
+        final var func = env.getFunction(thing, name, args.toArray(new Value[0]));
+        if (func != null)
+            return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
         return Error.error("operator '/' not defined for types '%s' and '%s'", left.getType(), right.getType());
+    }
+
+    public static Value negate(Environment env, Value value) {
+        if (value.isNumber())
+            return new NumberValue(env, -(double) value.getValue());
+
+        final var func = env.getFunction(value, "-");
+        if (func != null)
+            return env.getInterpreter().evaluateFunction(value, "-");
+
+        return Error.error("not yet implemented");
+    }
+
+    public static Value not(Environment env, Value value) {
+        if (value.isNumber())
+            return new NumberValue(env, !asBoolean(value) ? 1 : 0);
+
+        final var func = env.getFunction(value, "!");
+        if (func != null)
+            return env.getInterpreter().evaluateFunction(value, "!");
+
+        return Error.error("not yet implemented");
     }
 }

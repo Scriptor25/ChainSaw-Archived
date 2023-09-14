@@ -3,10 +3,10 @@ package io.scriptor.chainsaw.ast.expr;
 public class UnaryExpr extends Expr {
 
     public String operator;
-    public Expr expr;
+    public Expr value;
 
-    public UnaryExpr(String operator, Expr expr) {
+    public UnaryExpr(String operator, Expr value) {
         this.operator = operator;
-        this.expr = expr;
+        this.value = value;
     }
 }

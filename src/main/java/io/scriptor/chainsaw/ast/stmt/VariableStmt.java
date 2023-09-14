@@ -2,11 +2,9 @@ package io.scriptor.chainsaw.ast.stmt;
 
 import io.scriptor.chainsaw.ast.expr.Expr;
 
-public class RetStmt extends Stmt {
+public class VariableStmt extends Stmt {
 
+    public String type;
+    public String name;
     public Expr value;
-
-    public RetStmt(Expr value) {
-        this.value = value;
-    }
 }

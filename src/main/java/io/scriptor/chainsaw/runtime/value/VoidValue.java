@@ -17,4 +17,10 @@ public class VoidValue extends Value {
         return mValue;
     }
 
+    @Override
+    public VoidValue setValue(Object value) {
+        mValue = value;
+        return this;
+    }
+
 }

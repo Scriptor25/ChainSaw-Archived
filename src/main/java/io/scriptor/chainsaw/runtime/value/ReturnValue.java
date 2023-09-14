@@ -18,6 +18,12 @@ public class ReturnValue extends Value {
         return mValue;
     }
 
+    @Override
+    public ReturnValue setValue(Object value) {
+        mValue = (Value) value;
+        return this;
+    }
+
     public int getDepth() {
         return mDepth;
     }

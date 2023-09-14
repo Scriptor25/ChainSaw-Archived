@@ -17,4 +17,11 @@ public class NativeValue<C> extends Value {
         return mValue;
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public NativeValue<C> setValue(Object value) {
+        mValue = (C) value;
+        return this;
+    }
+
 }

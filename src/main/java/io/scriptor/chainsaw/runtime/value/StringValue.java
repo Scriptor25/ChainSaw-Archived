@@ -18,6 +18,12 @@ public class StringValue extends Value {
     }
 
     @Override
+    public StringValue setValue(Object value) {
+        mValue = (String) value;
+        return this;
+    }
+
+    @Override
     public boolean equals(Object other) {
         return super.equals(other) &&
                 (((StringValue) other).mValue == mValue ||

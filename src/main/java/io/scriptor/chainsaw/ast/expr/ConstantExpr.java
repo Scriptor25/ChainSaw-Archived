@@ -1,17 +1,17 @@
 package io.scriptor.chainsaw.ast.expr;
 
-public class ConstExpr extends Expr {
+public class ConstantExpr extends Expr {
 
-    public enum ConstType {
+    public enum ConstantType {
         NUMBER,
         STRING,
         CHAR
     }
 
     public String value;
-    public ConstType type;
+    public ConstantType type;
 
-    public ConstExpr(String value, ConstType type) {
+    public ConstantExpr(String value, ConstantType type) {
         this.value = value;
         this.type = type;
     }

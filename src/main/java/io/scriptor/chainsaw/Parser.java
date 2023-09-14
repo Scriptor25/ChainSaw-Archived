@@ -131,7 +131,7 @@ public class Parser {
 
     public Param parseParam() {
         var param = new Param();
-        param.ident = expect(TokenType.IDENTIFIER).value;
+        param.name = expect(TokenType.IDENTIFIER).value;
         expect(TokenType.COLON);
         param.type = expect(TokenType.IDENTIFIER).value;
         return param;
@@ -184,7 +184,10 @@ public class Parser {
         if (nextType(TokenType.IDENTIFIER) && nextType(1, TokenType.IDENTIFIER))
             return parseVarStmt();
 
-        if (nextType(TokenType.DOLLAR) ||
+        if (nextType(TokenType.DOLLAR)
+                || (nextType(TokenType.PAREN_OPEN)
+                        && (nextType(2, TokenType.PAREN_CLOSE) || nextType(3, TokenType.PAREN_CLOSE)))
+                ||
                 (nextType(TokenType.IDENTIFIER) &&
                         (nextType(1, TokenType.BRACE_OPEN) ||
                                 nextType(1, TokenType.BRACKET_OPEN) ||
@@ -206,44 +209,56 @@ public class Parser {
         expect("thing");
         expect(TokenType.COLON);
 
-        stmt.ident = expect(TokenType.IDENTIFIER).value;
+        stmt.name = expect(TokenType.IDENTIFIER).value;
 
         if (findAndEat(TokenType.SEMICOLON))
             return stmt;
 
         expect(TokenType.BRACE_OPEN);
-        stmt.params = new Vector<>();
-        parseParams(stmt.params);
+        stmt.fields = new Vector<>();
+        parseParams(stmt.fields);
         expect(TokenType.BRACE_CLOSE);
 
         return stmt;
     }
 
-    public FuncStmt parseFuncStmt() {
-        var stmt = new FuncStmt();
+    public FunctionStmt parseFuncStmt() {
+        var stmt = new FunctionStmt();
 
-        stmt.constructor = findAndEat(TokenType.DOLLAR);
-        stmt.ident = expect(TokenType.IDENTIFIER).value;
-        if (findAndEat(TokenType.COLON)) { // return type
-            if (stmt.constructor)
-                return error(next().line, "constructor must not have a type specified");
-            stmt.type = expect(TokenType.IDENTIFIER).value;
+        stmt.isOperator = findAndEat(TokenType.PAREN_OPEN);
+        if (stmt.isOperator) {
+            stmt.name = eat().value;
+            if (!findAndEat(TokenType.PAREN_CLOSE))
+                stmt.name += eat().value;
+        } else {
+            stmt.isConstructor = findAndEat(TokenType.DOLLAR);
+            stmt.name = expect(TokenType.IDENTIFIER).value;
         }
+
+        if (findAndEat(TokenType.COLON)) { // return type
+            if (stmt.isConstructor)
+                return error(next().line, "constructor must not have a type specified");
+            stmt.resultType = expect(TokenType.IDENTIFIER).value;
+        }
+
         if (findAndEat(TokenType.BRACKET_OPEN)) { // parameters
-            parseParams(stmt.params);
+            parseParams(stmt.parameters);
             expect(TokenType.BRACKET_CLOSE);
         }
+
         if (nextValue("var")) { // vararg
             eat();
-            stmt.vararg = true;
+            stmt.isVararg = true;
         }
+
         if (findAndEat(TokenType.MINUS, TokenType.GREATER)) { // member
-            stmt.member = expect(TokenType.IDENTIFIER).value;
+            stmt.superType = expect(TokenType.IDENTIFIER).value;
         }
+
         if (findAndEat(TokenType.SEMICOLON))
             return stmt;
 
-        stmt.impl = parseBodyStmt();
+        stmt.implementation = parseBodyStmt();
 
         return stmt;
     }
@@ -253,7 +268,7 @@ public class Parser {
 
         expect(TokenType.BRACE_OPEN);
         while (!findAndEat(TokenType.BRACE_CLOSE))
-            stmt.stmts.add(parseStmt());
+            stmt.statements.add(parseStmt());
 
         return stmt;
     }
@@ -265,9 +280,9 @@ public class Parser {
         expect(TokenType.PAREN_OPEN);
         stmt.condition = parseExpr();
         expect(TokenType.PAREN_CLOSE);
-        stmt.isTrue = parseStmt();
+        stmt.thenStmt = parseStmt();
         if (findAndEat("else"))
-            stmt.isFalse = parseStmt();
+            stmt.elseStmt = parseStmt();
 
         return stmt;
     }
@@ -321,31 +336,31 @@ public class Parser {
 
         expect("for");
         expect(TokenType.PAREN_OPEN);
-        stmt.before = parseStmt();
+        stmt.entry = parseStmt();
         stmt.condition = parseExpr();
         expect(TokenType.SEMICOLON);
-        stmt.loop = parseStmt();
+        stmt.next = parseStmt();
         expect(TokenType.PAREN_CLOSE);
         stmt.body = parseStmt();
 
         return stmt;
     }
 
-    public RetStmt parseRetStmt() {
+    public ReturnStmt parseRetStmt() {
         expect("ret");
         if (findAndEat(TokenType.SEMICOLON))
-            return new RetStmt(null);
+            return new ReturnStmt(null);
 
         var value = parseExpr();
         expect(TokenType.SEMICOLON);
-        return new RetStmt(value);
+        return new ReturnStmt(value);
     }
 
-    public VarStmt parseVarStmt() {
-        var stmt = new VarStmt();
+    public VariableStmt parseVarStmt() {
+        var stmt = new VariableStmt();
 
         stmt.type = expect(TokenType.IDENTIFIER).value;
-        stmt.ident = expect(TokenType.IDENTIFIER).value;
+        stmt.name = expect(TokenType.IDENTIFIER).value;
 
         if (findAndEat(TokenType.SEMICOLON))
             return stmt;
@@ -367,7 +382,7 @@ public class Parser {
         if (findAndEat(TokenType.EQUAL)) {
             var value = parseExpr();
 
-            assigne = new AssignExpr(assigne, value);
+            assigne = new AssignmentExpr(assigne, value);
         }
 
         return assigne;
@@ -381,7 +396,7 @@ public class Parser {
             expect(TokenType.COLON);
             var isfalse = parseExpr();
 
-            condition = new CondExpr(condition, istrue, isfalse);
+            condition = new ConditionExpr(condition, istrue, isfalse);
         }
 
         return condition;
@@ -396,7 +411,7 @@ public class Parser {
 
         if (findAndEat(TokenType.AND, TokenType.AND)) {
 
-            var right = parseExpr();
+            var right = parseAndBinaryExpr();
 
             left = new BinaryExpr(left, right, "&&");
         }
@@ -409,7 +424,7 @@ public class Parser {
 
         if (findAndEat(TokenType.PIPE, TokenType.PIPE)) {
 
-            var right = parseExpr();
+            var right = parseOrBinaryExpr();
 
             left = new BinaryExpr(left, right, "||");
         }
@@ -429,7 +444,7 @@ public class Parser {
             if (operator.equals("=") || nextType(TokenType.EQUAL))
                 operator += expect(TokenType.EQUAL).value;
 
-            var right = parseExpr();
+            var right = parseCmpBinaryExpr();
 
             left = new BinaryExpr(left, right, operator);
         }
@@ -447,7 +462,7 @@ public class Parser {
             var right = parseSumBinaryExpr();
 
             if (assign)
-                left = new AssignExpr(left, new BinaryExpr(left, right, operator));
+                left = new AssignmentExpr(left, new BinaryExpr(left, right, operator, true));
             else
                 left = new BinaryExpr(left, right, operator);
         }
@@ -465,7 +480,7 @@ public class Parser {
             var right = parseProBinaryExpr();
 
             if (assign)
-                left = new AssignExpr(left, new BinaryExpr(left, right, operator));
+                left = new AssignmentExpr(left, new BinaryExpr(left, right, operator, true));
             else
                 left = new BinaryExpr(left, right, operator);
         }
@@ -482,7 +497,8 @@ public class Parser {
             var operator = eat().value;
             expect(operator);
 
-            expr = new AssignExpr(expr, new BinaryExpr(expr, new ConstExpr("1", ConstExpr.ConstType.NUMBER), operator));
+            expr = new AssignmentExpr(expr,
+                    new BinaryExpr(expr, new ConstantExpr("1", ConstantExpr.ConstantType.NUMBER), operator, true));
         }
 
         return expr;
@@ -521,7 +537,7 @@ public class Parser {
         while (findAndEat(TokenType.PERIOD)) {
             var mexpr = new MemberExpr();
             mexpr.thing = expr;
-            mexpr.member = parseMemberExpr();
+            mexpr.member = parsePrimaryExpr();
             expr = mexpr;
         }
 
@@ -533,13 +549,13 @@ public class Parser {
 
         switch (token.type) {
             case IDENTIFIER:
-                return new IdentExpr(token.value);
+                return new IdentifierExpr(token.value);
             case NUMBER:
-                return new ConstExpr(token.value, ConstExpr.ConstType.NUMBER);
+                return new ConstantExpr(token.value, ConstantExpr.ConstantType.NUMBER);
             case CHAR:
-                return new ConstExpr(token.value, ConstExpr.ConstType.CHAR);
+                return new ConstantExpr(token.value, ConstantExpr.ConstantType.CHAR);
             case STRING:
-                return new ConstExpr(token.value, ConstExpr.ConstType.STRING);
+                return new ConstantExpr(token.value, ConstantExpr.ConstantType.STRING);
             case PAREN_OPEN: {
                 var expr = parseExpr();
                 expect(TokenType.PAREN_CLOSE);

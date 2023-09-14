@@ -40,4 +40,11 @@ public class ThingValue extends Value {
         return Collections.unmodifiableMap(mFields);
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public ThingValue setValue(Object value) {
+        mFields.putAll((Map<String, Value>) value);
+        return this;
+    }
+
 }

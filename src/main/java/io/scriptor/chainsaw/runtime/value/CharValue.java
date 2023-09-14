@@ -18,6 +18,12 @@ public class CharValue extends Value {
     }
 
     @Override
+    public CharValue setValue(Object value) {
+        mValue = (char) value;
+        return this;
+    }
+
+    @Override
     public boolean equals(Object other) {
         return super.equals(other) && ((CharValue) other).mValue == mValue;
     }

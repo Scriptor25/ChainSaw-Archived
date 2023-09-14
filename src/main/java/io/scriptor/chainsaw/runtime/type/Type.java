@@ -38,6 +38,17 @@ public abstract class Type {
         return this instanceof NativeType;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (o == null)
+            return false;
+        if (o == this)
+            return true;
+        if (!(o instanceof Type))
+            return false;
+        return this.isVoid() || ((Type) o).isVoid();
+    }
+
     public static Type parseType(Environment env, String str) {
         if (str == null)
             return null;

@@ -1,7 +1,5 @@
 package io.scriptor.chainsaw;
 
-import static io.scriptor.chainsaw.Constants.GSON;
-
 public class Token {
 
     public TokenType type = TokenType.UNDEFINED;
@@ -30,7 +28,7 @@ public class Token {
 
     @Override
     public String toString() {
-        return GSON.toJson(this);
+        return String.format("{ \"type\": \"%s\", \"value\": \"%s\", \"line\": %d }", type, value, line);
     }
 
 }

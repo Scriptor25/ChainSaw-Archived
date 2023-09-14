@@ -8,76 +8,76 @@ import java.util.List;
 
 public class Function {
 
-    private final boolean mConstructor;
-    private final String mId;
+    private final boolean mIsConstructor;
+    private final String mName;
     private final Type mResultType;
-    private final List<Pair<String, Type>> mParams;
-    private final boolean mVarArg;
-    private final Type mMember;
-    private FunctionImpl mImpl;
+    private final List<Pair<String, Type>> mParameters;
+    private final boolean mIsVarArg;
+    private final Type mSuperType;
+    private FunctionImplementation mImplementation;
 
     public Function(
-            boolean constructor,
-            String id,
+            boolean isConstructor,
+            String name,
             Type resultType,
-            List<Pair<String, Type>> params,
-            boolean vararg,
-            Type member,
-            FunctionImpl impl) {
-        mConstructor = constructor;
-        mId = id;
+            List<Pair<String, Type>> parameters,
+            boolean isVararg,
+            Type superType,
+            FunctionImplementation implementation) {
+        mIsConstructor = isConstructor;
+        mName = name;
         mResultType = resultType;
-        mParams = params;
-        mVarArg = vararg;
-        mMember = member;
-        mImpl = impl;
+        mParameters = parameters;
+        mIsVarArg = isVararg;
+        mSuperType = superType;
+        mImplementation = implementation;
     }
 
     public boolean isConstructor() {
-        return mConstructor;
+        return mIsConstructor;
     }
 
-    public String getId() {
-        return mId;
+    public String getName() {
+        return mName;
     }
 
     public Type getResultType() {
         return mResultType;
     }
 
-    public List<Pair<String, Type>> getParams() {
-        return Collections.unmodifiableList(mParams);
+    public List<Pair<String, Type>> getParameters() {
+        return Collections.unmodifiableList(mParameters);
     }
 
     public boolean isVarArg() {
-        return mVarArg;
+        return mIsVarArg;
     }
 
-    public Type getMember() {
-        return mMember;
+    public Type getSuperType() {
+        return mSuperType;
     }
 
-    public FunctionImpl getImpl() {
-        return mImpl;
+    public FunctionImplementation getImplementation() {
+        return mImplementation;
     }
 
     public boolean isOpaque() {
-        return mImpl == null;
+        return mImplementation == null;
     }
 
-    public boolean setImpl(FunctionImpl impl) {
+    public boolean setImplementation(FunctionImplementation impl) {
         if (isOpaque())
             return false;
 
-        mImpl = impl;
+        mImplementation = impl;
         return true;
     }
 
-    public boolean similar(String id, List<Pair<String, Type>> params, boolean vararg, Type member) {
-        return mId.equals(id) &&
-                mParams.equals(params) &&
-                (mVarArg == vararg) &&
-                (mMember == member || mMember.equals(member));
+    public boolean isSimilar(String name, List<Pair<String, Type>> parameters, boolean isVararg, Type superType) {
+        return mName.equals(name) &&
+                mParameters.equals(parameters) &&
+                (mIsVarArg == isVararg) &&
+                (mSuperType == superType || mSuperType.equals(superType));
     }
 
     @Override
@@ -91,34 +91,34 @@ public class Function {
 
         var func = (Function) other;
 
-        return (mConstructor == func.mConstructor) &&
-                mId.equals(func.mId) &&
+        return (mIsConstructor == func.mIsConstructor) &&
+                mName.equals(func.mName) &&
                 (mResultType == func.mResultType || (mResultType != null && mResultType.equals(func.mResultType))) &&
-                mParams.equals(func.mParams) &&
-                (mVarArg == func.mVarArg) &&
-                mMember.equals(func.mMember) &&
-                mImpl.equals(func.mImpl);
+                mParameters.equals(func.mParameters) &&
+                (mIsVarArg == func.mIsVarArg) &&
+                mSuperType.equals(func.mSuperType) &&
+                mImplementation.equals(func.mImplementation);
     }
 
     public static Function get(
             Environment env,
-            boolean constructor,
-            String id,
+            boolean isConstructor,
+            String name,
             Type resultType,
-            List<Pair<String, Type>> params,
-            boolean vararg,
-            Type member,
-            FunctionImpl impl) {
+            List<Pair<String, Type>> parameters,
+            boolean isVararg,
+            Type superType,
+            FunctionImplementation implementation) {
 
-        var func = env.getFunction(id, params, vararg, member);
+        var func = env.getFunction(name, parameters, isVararg, superType);
         if (func != null) {
-            if (impl == null || func.setImpl(impl))
+            if (implementation == null || func.setImplementation(implementation))
                 return func;
 
             return null;
         }
 
-        func = new Function(constructor, id, resultType, params, vararg, member, impl);
+        func = new Function(isConstructor, name, resultType, parameters, isVararg, superType, implementation);
 
         return env.addFunction(func);
     }

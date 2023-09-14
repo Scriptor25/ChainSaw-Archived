@@ -5,6 +5,6 @@ import io.scriptor.chainsaw.ast.expr.Expr;
 public class IfStmt extends Stmt {
 
     public Expr condition;
-    public Stmt isTrue;
-    public Stmt isFalse;
+    public Stmt thenStmt;
+    public Stmt elseStmt;
 }
