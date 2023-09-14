@@ -409,9 +409,9 @@ public class Parser {
     public Expr parseAndBinaryExpr() {
         var left = parseOrBinaryExpr();
 
-        if (findAndEat(TokenType.AND, TokenType.AND)) {
+        while (findAndEat(TokenType.AND, TokenType.AND)) {
 
-            var right = parseAndBinaryExpr();
+            var right = parseOrBinaryExpr();
 
             left = new BinaryExpr(left, right, "&&");
         }
@@ -422,9 +422,9 @@ public class Parser {
     public Expr parseOrBinaryExpr() {
         var left = parseCmpBinaryExpr();
 
-        if (findAndEat(TokenType.PIPE, TokenType.PIPE)) {
+        while (findAndEat(TokenType.PIPE, TokenType.PIPE)) {
 
-            var right = parseOrBinaryExpr();
+            var right = parseCmpBinaryExpr();
 
             left = new BinaryExpr(left, right, "||");
         }
@@ -435,7 +435,7 @@ public class Parser {
     public Expr parseCmpBinaryExpr() {
         var left = parseSumBinaryExpr();
 
-        if ((nextType(TokenType.EQUAL) &&
+        while ((nextType(TokenType.EQUAL) &&
                 nextType(1, TokenType.EQUAL)) ||
                 nextType(TokenType.LESS) ||
                 nextType(TokenType.GREATER)) {
@@ -444,7 +444,7 @@ public class Parser {
             if (operator.equals("=") || nextType(TokenType.EQUAL))
                 operator += expect(TokenType.EQUAL).value;
 
-            var right = parseCmpBinaryExpr();
+            var right = parseSumBinaryExpr();
 
             left = new BinaryExpr(left, right, operator);
         }
@@ -455,11 +455,11 @@ public class Parser {
     public Expr parseSumBinaryExpr() {
         var left = parseProBinaryExpr();
 
-        if (nextType(TokenType.PLUS) || nextType(TokenType.MINUS)) {
+        while (nextType(TokenType.PLUS) || nextType(TokenType.MINUS)) {
 
             var operator = eat().value;
             boolean assign = findAndEat(TokenType.EQUAL);
-            var right = parseSumBinaryExpr();
+            var right = parseProBinaryExpr();
 
             if (assign)
                 left = new AssignmentExpr(left, new BinaryExpr(left, right, operator, true));
@@ -473,11 +473,11 @@ public class Parser {
     public Expr parseProBinaryExpr() {
         var left = parseUnaryExpr();
 
-        if (nextType(TokenType.ASTER) || nextType(TokenType.SLASH)) {
+        while (nextType(TokenType.ASTER) || nextType(TokenType.SLASH)) {
 
             var operator = eat().value;
             boolean assign = findAndEat(TokenType.EQUAL);
-            var right = parseProBinaryExpr();
+            var right = parseUnaryExpr();
 
             if (assign)
                 left = new AssignmentExpr(left, new BinaryExpr(left, right, operator, true));

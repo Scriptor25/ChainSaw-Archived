@@ -57,6 +57,18 @@ public class Environment {
         Function.get(this, false, "sqrt", NumberType.get(this), params, false, null, new NativeImplementation(
                 env -> new NumberValue(env, Math.sqrt((double) env.getVariable("x").getValue()))));
 
+        params = new Vector<>();
+        params.add(new Pair<>("x", NumberType.get(this)));
+        Function.get(this, false, "acos", NumberType.get(this), params, false, null, new NativeImplementation(
+                env -> new NumberValue(env, Math.acos((double) env.getVariable("x").getValue()))));
+
+        params = new Vector<>();
+        params.add(new Pair<>("y", NumberType.get(this)));
+        params.add(new Pair<>("x", NumberType.get(this)));
+        Function.get(this, false, "atan2", NumberType.get(this), params, false, null, new NativeImplementation(
+                env -> new NumberValue(env, Math.atan2((double) env.getVariable("y").getValue(),
+                        (double) env.getVariable("x").getValue()))));
+
         // file
         params = new Vector<>();
         params.add(new Pair<>("name", StringType.get(this)));
