@@ -163,6 +163,9 @@ public class Parser {
         if (nextType(TokenType.BRACE_OPEN))
             return parseBodyStmt();
 
+        if (nextValue("inc"))
+            return parseIncStmt();
+
         if (nextValue("thing"))
             return parseThingStmt();
 
@@ -201,6 +204,16 @@ public class Parser {
             expect(TokenType.SEMICOLON);
 
         return expr;
+    }
+
+    public IncStmt parseIncStmt() {
+        var stmt = new IncStmt();
+
+        expect("inc");
+        stmt.path = expect(TokenType.STRING).value;
+        expect(TokenType.SEMICOLON);
+
+        return stmt;
     }
 
     public ThingStmt parseThingStmt() {
@@ -438,9 +451,11 @@ public class Parser {
         var left = parseSumBinaryExpr();
 
         while ((nextType(TokenType.EQUAL) &&
-                nextType(1, TokenType.EQUAL)) ||
-                nextType(TokenType.LESS) ||
-                nextType(TokenType.GREATER)) {
+                nextType(1, TokenType.EQUAL))
+                || (nextType(TokenType.EXCLAM) &&
+                        nextType(1, TokenType.EQUAL))
+                || nextType(TokenType.LESS)
+                || nextType(TokenType.GREATER)) {
 
             var operator = eat().value;
             if (operator.equals("=") || nextType(TokenType.EQUAL))
@@ -547,8 +562,10 @@ public class Parser {
     }
 
     public Expr parsePrimaryExpr() {
-        var token = eat();
+        if (!ok())
+            return null;
 
+        var token = eat();
         switch (token.type) {
             case IDENTIFIER:
                 return new IdentifierExpr(token.value);

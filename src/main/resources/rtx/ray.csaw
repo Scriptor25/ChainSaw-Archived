@@ -1,0 +1,25 @@
+thing: ray {
+    orig: vec3,
+    dir: vec3
+}
+
+$ray { my.orig = my.dir = vec3(); }
+$ray [origin: vec3, direction: vec3] {
+    my.orig = origin;
+    my.dir = direction;
+}
+
+origin: vec3 -> ray { ret my.orig; }
+direction: vec3 -> ray { ret my.dir; }
+
+at: vec3 [t: number] -> ray { ret my.orig + t * my.dir; }
+
+set [r: ray] -> ray {
+    my.orig = r.orig;
+    my.dir = r.dir;
+}
+
+set [origin: vec3, direction: vec3] -> ray {
+    my.orig = origin;
+    my.dir = direction;
+}

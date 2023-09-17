@@ -1,0 +1,156 @@
+thing: camera {
+    # Public #
+    output_file: string,
+
+    aspect_ratio: number,      ## Ratio of image width over height
+    image_width: number,       ## Rendered image width in pixel count
+    samples_per_pixel: number, ## Count of random samples for each pixel
+    max_depth: number,         ## Maximum number of ray bounces into scene
+
+    vfov: number,              ## Vertical view angle (field of view)
+    lookfrom: vec3,            ## Point camera is looking from
+    lookat: vec3,              ## Point camera is looking at
+    vup: vec3,                 ## Camera-relative "up" direction
+
+    defocus_angle: number,     ## Variation angle of rays through each pixel
+    focus_dist: number,        ## Distance from camera lookfrom point to plane of perfect focus
+
+    # Private #
+    image_height: number,      ## Rendered image height
+    center: vec3,              ## Camera center
+    pixel00_loc: vec3,         ## Location of pixel 0, 0
+    pixel_delta_u: vec3,       ## Offset to pixel to the right
+    pixel_delta_v: vec3,       ## Offset to pixel below
+    u: vec3, v: vec3, w: vec3, ## Camera frame basis vectors
+    defocus_disk_u: vec3,      ## Defocus disk horizontal radius
+    defocus_disk_v: vec3,      ## Defocus disk vertical radius
+}
+
+$camera {
+    my.output_file = "output.ppm";
+
+    my.aspect_ratio = 16 / 9;
+    my.image_width = 100;
+    my.samples_per_pixel = 10;
+    my.max_depth = 10;
+
+    my.vfov = 90;
+    my.lookfrom = vec3(0, 0, -1);
+    my.lookat = vec3(0, 0, 0);
+    my.vup = vec3(0, 1, 0);
+
+    my.defocus_angle = 0;
+    my.focus_dist = 10;
+}
+
+render [world: hittable_list] -> camera {
+    my.initialize();
+
+    file f = file(my.output_file, "out");
+    f.out("P3%n%s %s\n255%n", my.image_width, my.image_height);
+
+    for (number j = 0; j < my.image_height; j++) {
+        out("\r%s", progress_bar("Rendering", 150, j / my.image_height));
+        for (number i = 0; i < my.image_width; i++) {
+            vec3 pixel_color = vec3(0, 0, 0);
+            for (number sample = 0; sample < my.samples_per_pixel; sample++) {
+                ray r = my.get_ray(i, j);
+                pixel_color += my.ray_color(r, my.max_depth, world);
+            }
+            write_color(f, pixel_color, my.samples_per_pixel);
+        }
+    }
+
+    f.close();
+
+    out("%nDone.%n");
+}
+
+initialize -> camera {
+    my.image_height = floor(my.image_width / my.aspect_ratio);
+    my.image_height = (my.image_height < 1) ? 1 : my.image_height;
+
+    my.center = my.lookfrom;
+
+    ## Determine viewport dimensions.
+    number theta = degrees_to_radians(my.vfov);
+    number h = tan(theta / 2);
+    number viewport_height = 2 * h * my.focus_dist;
+    number viewport_width = viewport_height * (my.image_width / my.image_height);
+
+    ## Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+    my.w = unit_vector(my.lookfrom - my.lookat);
+    my.u = unit_vector(cross(my.vup, my.w));
+    my.v = cross(my.w, my.u);
+
+    ## Calculate the vectors across the horizontal and down the vertical viewport edges.
+    vec3 viewport_u = viewport_width * my.u;    ## Vector across viewport horizontal edge
+    vec3 viewport_v = viewport_height * -my.v;  ## Vector down viewport vertical edge
+
+    ## Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    my.pixel_delta_u = viewport_u / my.image_width;
+    my.pixel_delta_v = viewport_v / my.image_height;
+
+    ## Calculate the location of the upper left pixel.
+    vec3 viewport_upper_left = my.center - (my.focus_dist * my.w) - viewport_u / 2 - viewport_v / 2;
+    my.pixel00_loc = viewport_upper_left + 0.5 * (my.pixel_delta_u + my.pixel_delta_v);
+
+    ## Calculate the camera defocus disk basis vectors.
+    number defocus_radius = my.focus_dist * tan(degrees_to_radians(my.defocus_angle / 2));
+    my.defocus_disk_u = my.u * defocus_radius;
+    my.defocus_disk_v = my.v * defocus_radius;
+}
+
+get_ray: ray [i: number, j: number] -> camera {
+    ## Get a randomly-sampled camera ray for the pixel at location i,j, originating from
+    ## the camera defocus disk.
+
+    vec3 pixel_center = my.pixel00_loc + (i * my.pixel_delta_u) + (j * my.pixel_delta_v);
+    vec3 pixel_sample = pixel_center + my.pixel_sample_square();
+
+    vec3 ray_origin = (my.defocus_angle <= 0) ? my.center : my.defocus_disk_sample();
+    vec3 ray_direction = pixel_sample - ray_origin;
+
+    ret ray(ray_origin, ray_direction);
+}
+
+defocus_disk_sample: vec3 -> camera {
+    ## Returns a random point in the camera defocus disk.
+    if (my.samples_per_pixel <= 1)
+        ret my.center;
+
+    vec3 p = random_in_unit_disk();
+    ret my.center + (p.x() * my.defocus_disk_u) + (p.y() * my.defocus_disk_v);
+}
+
+pixel_sample_square: vec3 -> camera {
+    ## Returns a random point in the square surrounding a pixel at the origin.
+    number px; number py;
+    if (my.samples_per_pixel <= 1) {
+        px = 0;
+        py = 0;
+    } else {
+        px = -0.5 + random();
+        py = -0.5 + random();
+    }
+    ret (px * my.pixel_delta_u) + (py * my.pixel_delta_v);
+}
+
+ray_color: vec3 [r: ray, depth: number, world: hittable_list] -> camera {
+    if (depth <= 0) ## If we've exceeded the ray bounce limit, no more light is gathered.
+        ret vec3(0, 0, 0);
+
+    hit_record rec;
+
+    if (world.hit(r, interval(0.001, infinity), rec)){
+        ray scattered;
+        vec3 attenuation;
+        if (rec.mat.scatter(r, rec, attenuation, scattered))
+            ret attenuation * my.ray_color(scattered, depth - 1, world);
+        ret vec3(0, 0, 0);
+    }
+
+    vec3 unit_direction = unit_vector(r.direction());
+    number a = 0.5 * (unit_direction.y() + 1.0);
+    ret (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
+}

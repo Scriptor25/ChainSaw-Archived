@@ -219,6 +219,9 @@ public abstract class Value {
     }
 
     public static Value negate(Environment env, Value value) {
+        if (value == null)
+            return null;
+
         if (value.isNumber())
             return new NumberValue(env, -(double) value.getValue());
 

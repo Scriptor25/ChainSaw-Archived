@@ -68,7 +68,7 @@ public abstract class Type {
         if (type != null)
             return type;
 
-        type = NativeType.get(env, null, str);
+        type = NativeType.get(env, str);
         if (type != null)
             return type;
 

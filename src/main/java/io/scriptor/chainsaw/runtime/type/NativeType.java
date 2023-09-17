@@ -33,7 +33,7 @@ public class NativeType<C> extends Type {
         return mAlias;
     }
 
-    public static <C> NativeType<C> get(Environment env, Class<C> nativeClass, String alias) {
+    public static <C> NativeType<C> create(Environment env, Class<C> nativeClass, String alias) {
         var type = env.getNativeType(nativeClass, alias);
         if (type != null)
             return type;
@@ -41,6 +41,14 @@ public class NativeType<C> extends Type {
         type = new NativeType<>(env, nativeClass, alias);
 
         return env.addNativeType(type);
+    }
+
+    public static <C> NativeType<C> get(Environment env, Class<C> nativeClass) {
+        return env.getNativeType(nativeClass, null);
+    }
+
+    public static <C> NativeType<C> get(Environment env, String alias) {
+        return env.getNativeType(null, alias);
     }
 
 }

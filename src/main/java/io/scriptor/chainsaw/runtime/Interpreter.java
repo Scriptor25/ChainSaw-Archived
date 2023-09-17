@@ -1,5 +1,8 @@
 package io.scriptor.chainsaw.runtime;
 
+import io.scriptor.chainsaw.FileUtil;
+import io.scriptor.chainsaw.Lexer;
+import io.scriptor.chainsaw.Parser;
 import io.scriptor.chainsaw.ast.Program;
 import io.scriptor.chainsaw.ast.expr.*;
 import io.scriptor.chainsaw.ast.stmt.*;
@@ -9,11 +12,20 @@ import io.scriptor.chainsaw.runtime.type.Type;
 import io.scriptor.chainsaw.runtime.type.VoidType;
 import io.scriptor.chainsaw.runtime.value.*;
 
+import java.io.File;
 import java.util.*;
 
 public class Interpreter {
 
     private Environment mEnv = new Environment(this);
+    private String mExecutionPath;
+
+    public Interpreter() {
+    }
+
+    public Interpreter(String executionPath) {
+        mExecutionPath = executionPath;
+    }
 
     public Value evaluateProgram(Program program) {
 
@@ -101,6 +113,8 @@ public class Interpreter {
             return evaluateFunctionStmt((FunctionStmt) stmt);
         if (stmt instanceof IfStmt)
             return evaluateIfStmt((IfStmt) stmt);
+        if (stmt instanceof IncStmt)
+            return evaluateIncStmt((IncStmt) stmt);
         if (stmt instanceof ReturnStmt)
             return evaluateReturnStmt((ReturnStmt) stmt);
         if (stmt instanceof SwitchStmt)
@@ -139,7 +153,8 @@ public class Interpreter {
         mEnv = new Environment(mEnv);
 
         Value value = null;
-        for (evaluateStmt(stmt.entry); Value.asBoolean(Value.extract(evaluateExpr(stmt.condition))); evaluateStmt(stmt.next)) {
+        for (evaluateStmt(stmt.entry); Value
+                .asBoolean(Value.extract(evaluateExpr(stmt.condition))); evaluateStmt(stmt.next)) {
             value = evaluateStmt(stmt.body);
             if (value instanceof ReturnValue)
                 break;
@@ -188,6 +203,18 @@ public class Interpreter {
         mEnv = mEnv.getParent();
 
         return value;
+    }
+
+    public Value evaluateIncStmt(IncStmt stmt) {
+        var source = FileUtil.readFile(mExecutionPath == null
+                ? stmt.path
+                : new File(mExecutionPath, stmt.path).getPath());
+
+        var tokens = Lexer.tokenize(source);
+        var parser = new Parser(tokens);
+        var program = parser.parseProgram();
+
+        return evaluateProgram(program);
     }
 
     public Value evaluateReturnStmt(ReturnStmt stmt) {
@@ -241,6 +268,8 @@ public class Interpreter {
     }
 
     public Value evaluateExpr(Expr expr) {
+        if (expr == null)
+            return null;
 
         if (expr instanceof AssignmentExpr)
             return evaluateAssignmentExpr((AssignmentExpr) expr);
@@ -286,6 +315,8 @@ public class Interpreter {
 
             case "==":
                 return new NumberValue(mEnv, Value.equals(mEnv, left, right) ? 1 : 0);
+            case "!=":
+                return new NumberValue(mEnv, Value.equals(mEnv, left, right) ? 0 : 1);
             case "<":
                 return new NumberValue(mEnv, Value.less(mEnv, left, right) ? 1 : 0);
             case ">":

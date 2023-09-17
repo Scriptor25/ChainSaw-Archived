@@ -26,8 +26,8 @@ public class Environment {
         this(null, interpreter);
 
         // Native Types
-        NativeType.get(this, FileStream.class, "file");
-        NativeType.get(this, List.class, "list");
+        NativeType.create(this, FileStream.class, "file");
+        NativeType.create(this, List.class, "list");
 
         // Native Functions
         List<Pair<String, Type>> params = new Vector<>();
@@ -111,14 +111,14 @@ public class Environment {
         params.add(new Pair<>("mode", StringType.get(this)));
         Function.get(this, true, "file", VoidType.get(this), params, false, null,
                 new NativeImplementation(
-                        env -> new NativeValue<>(env, NativeType.get(env, FileStream.class, "file"),
+                        env -> new NativeValue<>(env, NativeType.get(env, FileStream.class),
                                 new FileStream((String) env.getVariable("name").getValue(),
                                         (String) env.getVariable("mode").getValue()))));
 
         params = new Vector<>();
         params.add(new Pair<>("fmt", StringType.get(this)));
         Function.get(this, false, "out", VoidType.get(this), params, true,
-                NativeType.get(this, FileStream.class, "file"), new NativeImplementation(env -> {
+                NativeType.get(this, FileStream.class), new NativeImplementation(env -> {
                     List<Object> args = new Vector<>();
                     for (int i = 0; env.hasVariable("vararg" + i); i++)
                         args.add(env.getVariable("vararg" + i));
@@ -130,7 +130,7 @@ public class Environment {
                 }));
 
         Function.get(this, false, "close", VoidType.get(this), Collections.emptyList(), false,
-                NativeType.get(this, FileStream.class, "file"), new NativeImplementation(env -> {
+                NativeType.get(this, FileStream.class), new NativeImplementation(env -> {
                     ((FileStream) env.getVariable("my").getValue()).close();
                     return null;
                 }));
@@ -138,24 +138,24 @@ public class Environment {
         // list
         Function.get(this, true, "list", VoidType.get(this), Collections.emptyList(), false, null,
                 new NativeImplementation(
-                        env -> new NativeValue<>(env, NativeType.get(env, List.class, "list"), new Vector<Value>())));
+                        env -> new NativeValue<>(env, NativeType.get(env, List.class), new Vector<Value>())));
 
         params = new Vector<>();
         params.add(new Pair<>("object", VoidType.get(this)));
-        Function.get(this, false, "add", VoidType.get(this), params, false, NativeType.get(this, List.class, "list"),
+        Function.get(this, false, "add", VoidType.get(this), params, false, NativeType.get(this, List.class),
                 new NativeImplementation(env -> {
                     ((List<?>) env.getVariable("my").getValue()).add(env.getVariable("object"));
                     return null;
                 }));
 
         Function.get(this, false, "size", VoidType.get(this), Collections.emptyList(), false,
-                NativeType.get(this, List.class, "list"),
+                NativeType.get(this, List.class),
                 new NativeImplementation(
                         env -> new NumberValue(env, ((List<?>) env.getVariable("my").getValue()).size())));
 
         params = new Vector<>();
         params.add(new Pair<>("index", NumberType.get(this)));
-        Function.get(this, false, "get", VoidType.get(this), params, false, NativeType.get(this, List.class, "list"),
+        Function.get(this, false, "get", VoidType.get(this), params, false, NativeType.get(this, List.class),
                 new NativeImplementation(env -> (Value) ((List<?>) env.getVariable("my").getValue())
                         .get((int) (double) env.getVariable("index").getValue())));
     }

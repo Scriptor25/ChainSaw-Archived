@@ -1,0 +1,67 @@
+inc "util.csaw";
+
+# The Main Function #
+main: number {
+    hittable_list world = hittable_list();
+
+    void ground_material = lambertian(vec3(0.5, 0.5, 0.5));
+    world.add(sphere(vec3(0, -1000, 0), 1000, ground_material));
+
+    for (number a = -11; a < 11; a++) {
+        for (number b = -11; b < 11; b++) {
+            void choose_mat = random();
+            vec3 center = vec3(a + 0.9 * random(), 0.2, b + 0.9 * random());
+
+            if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
+                void sphere_material;
+
+                if (choose_mat < 0.8) {
+                    ## diffuse
+                    vec3 albedo = random_vec3() * random_vec3();
+                    sphere_material = lambertian(albedo);
+                    world.add(sphere(center, 0.2, sphere_material));
+                } else if (choose_mat < 0.95) {
+                    ## metal
+                    vec3 albedo = random_vec3(0.5, 1);
+                    number fuzz = random(0, 0.5);
+                    sphere_material = metal(albedo, fuzz);
+                    world.add(sphere(center, 0.2, sphere_material));
+                } else {
+                    ## glass
+                    sphere_material = dielectric(1.5);
+                    world.add(sphere(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    void material1 = dielectric(1.5);
+    world.add(sphere(vec3(0, 1, 0), 1.0, material1));
+
+    void material2 = lambertian(vec3(0.4, 0.2, 0.1));
+    world.add(sphere(vec3(-4, 1, 0), 1.0, material2));
+
+    void material3 = metal(vec3(0.7, 0.6, 0.5), 0.0);
+    world.add(sphere(vec3(4, 1, 0), 1.0, material3));
+
+    camera cam;
+
+    cam.output_file = "final.ppm";
+
+    cam.aspect_ratio      = 16.0 / 9.0;
+    cam.image_width       = 1200;
+    cam.samples_per_pixel = 500;
+    cam.max_depth         = 50;
+
+    cam.vfov     = 20;
+    cam.lookfrom = vec3(13, 2, 3);
+    cam.lookat   = vec3( 0, 0, 0);
+    cam.vup      = vec3( 0, 1, 0);
+
+    cam.defocus_angle = 0.6;
+    cam.focus_dist    = 10.0;
+
+    cam.render(world);
+
+    ret 0;
+}

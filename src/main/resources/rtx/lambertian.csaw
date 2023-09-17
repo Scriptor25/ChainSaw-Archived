@@ -1,0 +1,19 @@
+thing: lambertian {
+    albedo: vec3
+}
+
+$lambertian [a: vec3] {
+    my.albedo = a;
+}
+
+scatter: number [r_in: ray, rec: hit_record, attenuation: vec3, scattered: ray] -> lambertian {
+    vec3 scatter_direction = rec.normal + random_unit_vector();
+
+    ## Catch degenerate scatter direction
+    if (scatter_direction.near_zero())
+        scatter_direction = rec.normal;
+
+    scattered.set(rec.p, scatter_direction);
+    attenuation.set(my.albedo);
+    ret true;
+}

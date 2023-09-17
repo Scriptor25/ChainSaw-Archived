@@ -1,0 +1,16 @@
+thing: metal {
+    albedo: vec3,
+    fuzz: number,
+}
+
+$metal [a: vec3, f: number] {
+    my.albedo = a;
+    my.fuzz = f;
+}
+
+scatter: number [r_in: ray, rec: hit_record, attenuation: vec3, scattered: ray] -> metal {
+    vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
+    scattered.set(rec.p, reflected + my.fuzz * random_unit_vector());
+    attenuation.set(my.albedo);
+    ret (dot(scattered.direction(), rec.normal) > 0);
+}

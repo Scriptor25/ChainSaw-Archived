@@ -1,0 +1,38 @@
+thing: sphere {
+    center: vec3,
+    radius: number,
+    mat: void,
+}
+
+$sphere [center: vec3, radius: number, material: void] {
+    my.center = center;
+    my.radius = radius;
+    my.mat = material;
+}
+
+hit: number [r: ray, ray_t: interval, rec: hit_record] -> sphere {
+    vec3 oc = r.origin() - my.center;
+    number a = (r.direction()).length_squared();
+    number half_b = dot(oc, r.direction());
+    number c = oc.length_squared() - my.radius * my.radius;
+
+    number discriminant = half_b * half_b - a * c;
+    if (discriminant < 0) ret false;
+    number sqrtd = sqrt(discriminant);
+
+    ## Find the nearest root that lies in the acceptable range.
+    number root = (-half_b - sqrtd) / a;
+    if (!ray_t.surrounds(root)) {
+        root = (-half_b + sqrtd) / a;
+        if (!ray_t.surrounds(root))
+            ret false;
+    }
+
+    rec.t = root;
+    rec.p = r.at(rec.t);
+    vec3 outward_normal = (rec.p - my.center) / my.radius;
+    rec.set_face_normal(r, outward_normal);
+    rec.mat = my.mat;
+
+    ret true;
+}

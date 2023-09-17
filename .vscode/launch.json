@@ -25,7 +25,7 @@
             "request": "launch",
             "mainClass": "io.scriptor.Main",
             "projectName": "chainsaw",
-            "args": ["src/main/resources/rtx.csaw"]
+            "args": ["src/main/resources/rtx/rtx.csaw"]
         }
     ]
 }

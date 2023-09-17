@@ -1,0 +1,101 @@
+## Things
+ thing: vec3;           ## Three Component Vector
+ thing: ray;            ## Ray
+ thing: hit_record;     ## Hit Record
+ thing: sphere;         ## Sphere
+ thing: hittable_list;  ## Hittable List
+ thing: interval;       ## Interval
+ thing: camera;         ## Camera
+ thing: lambertian;     ## Lambertian Material
+ thing: metal;          ## Metal Material
+ thing: dielectric;     ## Dielectric Material
+
+## Constants
+ number infinity = inf();            ## Max Number Value
+ number pi = 3.1415926535897932385;  ## PI
+
+## Boolean
+ number false = 0;                   ## Boolean False
+ number true = 1;                    ## Boolean True
+
+## Utility Functions
+
+degrees_to_radians: number [degrees: number] {
+    ret degrees * pi / 180;
+}
+
+linear_to_gamma: number [linear_component: number] {
+    ret sqrt(linear_component);
+}
+
+random: number [min: number, max: number] {
+    ret min + (max - min) * random();
+}
+
+min: number [a: number, b: number] {
+    ret a < b ? a : b;
+}
+
+progress_bar: string [message: string, length: number, percentage: number] {
+    char off = '_';
+    char on = '#';
+    string bar = message + " [";
+
+    string label = " " + floor(percentage * 100) + "% ";
+
+    number progress = percentage * length;
+    number label_start = (length - label.length()) * 0.5;
+    number label_end = (length + label.length()) * 0.5;
+
+    number i = 0;
+    for (; i < min(progress, label_start); i++)
+        bar += on;
+    for(; i < label_start; i++)
+        bar += off;
+    for(; i < label_end; i++)
+        bar += label.at(i - label_start);
+    for (; i < progress; i++)
+        bar += on;
+    for(; i < length; i++)
+        bar += off;
+    
+    ret bar += "]";
+}
+
+# Write Color To File Stream #
+write_color [f: file, pixel_color: vec3, samples_per_pixel: number] {
+    number r = pixel_color.x();
+    number g = pixel_color.y();
+    number b = pixel_color.z();
+
+    ## Divide the color by the number of samples.
+    number scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    ## Apply the linear to gamma transform.
+    r = linear_to_gamma(r);
+    g = linear_to_gamma(g);
+    b = linear_to_gamma(b);
+
+    ## Write the translated [0,255] value of each color component.
+    f.out(
+        "%s %s %s%n",
+        floor(256 * intensity.clamp(r)),
+        floor(256 * intensity.clamp(g)),
+        floor(256 * intensity.clamp(b))
+    );
+}
+
+## Includes
+ inc "vec3.csaw";
+ inc "ray.csaw";
+ inc "hit_record.csaw";
+ inc "sphere.csaw";
+ inc "hittable_list.csaw";
+ inc "interval.csaw";
+ inc "camera.csaw";
+ inc "lambertian.csaw";
+ inc "metal.csaw";
+ inc "dielectric.csaw";

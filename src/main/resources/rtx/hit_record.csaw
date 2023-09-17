@@ -1,0 +1,20 @@
+thing: hit_record {
+    p: vec3,
+    normal: vec3,
+    mat: void,
+    t: number,
+    front_face: number,
+}
+
+set_face_normal [r: ray, outward_normal: vec3] -> hit_record {
+    my.front_face = dot(r.direction(), outward_normal) < 0;
+    my.normal = my.front_face ? outward_normal : -outward_normal;
+}
+
+set [rec: hit_record] -> hit_record {
+    my.p = rec.p;
+    my.normal = rec.normal;
+    my.t = rec.t;
+    my.front_face = rec.front_face;
+    my.mat = rec.mat;
+}
