@@ -15,11 +15,11 @@ public class Interpreter {
 
     private Environment mEnv = new Environment(this);
 
-    public Value evaluate(Program program) {
+    public Value evaluateProgram(Program program) {
 
         Value value = null;
         for (var stmt : program)
-            value = evaluate(stmt);
+            value = evaluateStmt(stmt);
 
         return value;
     }
@@ -36,26 +36,28 @@ public class Interpreter {
                     Arrays.toString(Value.toTypeArray(args)),
                     thing != null ? " -> " + thing.getType().toString() : "");
 
+        mEnv = new Environment(mEnv);
+
+        var params = func.getParameters();
+        int i = 0;
+        for (; i < params.size(); i++)
+            mEnv.createVariable(params.get(i).first, args[i]);
+
+        for (int j = i; i < args.length; i++)
+            mEnv.createVariable("vararg" + (i - j), args[i]);
+
+        if (func.getSuperType() != null)
+            mEnv.createVariable("my", thing);
+
+        Value result = null;
+
         if (func.getImplementation() instanceof ASTImplementation) {
             var impl = (ASTImplementation) func.getImplementation();
-
-            mEnv = new Environment(mEnv);
-
-            var params = func.getParameters();
-            int i = 0;
-            for (; i < params.size(); i++)
-                mEnv.createVariable(params.get(i).first, args[i]);
-
-            for (int j = i; i < args.length; i++)
-                mEnv.createVariable("vararg" + (i - j), args[i]);
-
-            if (func.getSuperType() != null)
-                mEnv.createVariable("my", thing);
 
             if (func.isConstructor())
                 mEnv.createVariable("my", func.getResultType().nullValue());
 
-            var result = evaluate(impl.getBody());
+            result = evaluateBodyStmt(impl.getBody());
 
             if (func.isConstructor())
                 result = new ReturnValue(mEnv.getVariable("my"), mEnv.getDepth());
@@ -75,75 +77,54 @@ public class Interpreter {
                         Arrays.toString(Value.toTypeArray(args)),
                         thing != null ? " -> " + thing.getType().toString() : "");
             }
-
-            mEnv = mEnv.getParent();
-
-            return Value.extract(result);
-        }
-
-        if (func.getImplementation() instanceof NativeImplementation) {
+        } else if (func.getImplementation() instanceof NativeImplementation) {
             var impl = (NativeImplementation) func.getImplementation();
 
-            mEnv = new Environment(mEnv);
-
-            var params = func.getParameters();
-            int i = 0;
-            for (; i < params.size(); i++)
-                mEnv.createVariable(params.get(i).first, args[i]);
-
-            for (int j = i; i < args.length; i++)
-                mEnv.createVariable("vararg" + (i - j), args[i]);
-
-            if (func.getSuperType() != null)
-                mEnv.createVariable("my", thing);
-
-            if (func.isConstructor())
-                mEnv.createVariable("my", func.getResultType().nullValue());
-
-            var result = impl.invoke(mEnv);
-
-            mEnv = mEnv.getParent();
-
-            return Value.extract(result);
+            result = impl.invoke(mEnv);
         }
 
-        return null;
+        mEnv = mEnv.getParent();
+
+        return Value.extract(result);
     }
 
-    public Value evaluate(Stmt stmt) {
+    public Value evaluateStmt(Stmt stmt) {
+
+        if (stmt == null)
+            return null;
 
         if (stmt instanceof BodyStmt)
-            return evaluate((BodyStmt) stmt);
+            return evaluateBodyStmt((BodyStmt) stmt);
         if (stmt instanceof ForStmt)
-            return evaluate((ForStmt) stmt);
+            return evaluateForStmt((ForStmt) stmt);
         if (stmt instanceof FunctionStmt)
-            return evaluate((FunctionStmt) stmt);
+            return evaluateFunctionStmt((FunctionStmt) stmt);
         if (stmt instanceof IfStmt)
-            return evaluate((IfStmt) stmt);
+            return evaluateIfStmt((IfStmt) stmt);
         if (stmt instanceof ReturnStmt)
-            return evaluate((ReturnStmt) stmt);
+            return evaluateReturnStmt((ReturnStmt) stmt);
         if (stmt instanceof SwitchStmt)
-            return evaluate((SwitchStmt) stmt);
+            return evaluateSwitchStmt((SwitchStmt) stmt);
         if (stmt instanceof ThingStmt)
-            return evaluate((ThingStmt) stmt);
+            return evaluateThingStmt((ThingStmt) stmt);
         if (stmt instanceof VariableStmt)
-            return evaluate((VariableStmt) stmt);
+            return evaluateVariableStmt((VariableStmt) stmt);
         if (stmt instanceof WhileStmt)
-            return evaluate((WhileStmt) stmt);
+            return evaluateWhileStmt((WhileStmt) stmt);
 
         if (stmt instanceof Expr)
-            return evaluate((Expr) stmt);
+            return evaluateExpr((Expr) stmt);
 
         return Error.error("not yet implemented");
     }
 
-    public Value evaluate(BodyStmt stmt) {
+    public Value evaluateBodyStmt(BodyStmt stmt) {
 
         mEnv = new Environment(mEnv);
 
         Value value = null;
         for (var s : stmt.statements) {
-            value = evaluate(s);
+            value = evaluateStmt(s);
             if (value instanceof ReturnValue)
                 break;
         }
@@ -153,13 +134,13 @@ public class Interpreter {
         return value;
     }
 
-    public Value evaluate(ForStmt stmt) {
+    public Value evaluateForStmt(ForStmt stmt) {
 
         mEnv = new Environment(mEnv);
 
         Value value = null;
-        for (evaluate(stmt.entry); Value.asBoolean(Value.extract(evaluate(stmt.condition))); evaluate(stmt.next)) {
-            value = evaluate(stmt.body);
+        for (evaluateStmt(stmt.entry); Value.asBoolean(Value.extract(evaluateExpr(stmt.condition))); evaluateStmt(stmt.next)) {
+            value = evaluateStmt(stmt.body);
             if (value instanceof ReturnValue)
                 break;
         }
@@ -169,7 +150,7 @@ public class Interpreter {
         return value;
     }
 
-    public Value evaluate(FunctionStmt stmt) {
+    public Value evaluateFunctionStmt(FunctionStmt stmt) {
 
         List<Pair<String, Type>> params = new Vector<>();
         for (var param : stmt.parameters)
@@ -196,32 +177,32 @@ public class Interpreter {
         return null;
     }
 
-    public Value evaluate(IfStmt stmt) {
+    public Value evaluateIfStmt(IfStmt stmt) {
 
         mEnv = new Environment(mEnv);
 
-        Value value = Value.asBoolean(Value.extract(evaluate(stmt.condition)))
-                ? evaluate(stmt.thenStmt)
-                : stmt.elseStmt == null ? null : evaluate(stmt.elseStmt);
+        Value value = Value.asBoolean(Value.extract(evaluateExpr(stmt.condition)))
+                ? evaluateStmt(stmt.thenStmt)
+                : stmt.elseStmt == null ? null : evaluateStmt(stmt.elseStmt);
 
         mEnv = mEnv.getParent();
 
         return value;
     }
 
-    public Value evaluate(ReturnStmt stmt) {
+    public Value evaluateReturnStmt(ReturnStmt stmt) {
         if (stmt.value == null)
             return new ReturnValue(new VoidValue(mEnv, null), mEnv.getDepth());
 
-        var value = Value.extract(evaluate(stmt.value));
+        var value = Value.extract(evaluateExpr(stmt.value));
         return new ReturnValue(value, mEnv.getDepth());
     }
 
-    public Value evaluate(SwitchStmt stmt) {
+    public Value evaluateSwitchStmt(SwitchStmt stmt) {
         return Error.error("not yet implemented");
     }
 
-    public Value evaluate(ThingStmt stmt) {
+    public Value evaluateThingStmt(ThingStmt stmt) {
 
         Map<String, Type> params = null;
         if (stmt.fields != null) {
@@ -235,21 +216,21 @@ public class Interpreter {
         return null;
     }
 
-    public Value evaluate(VariableStmt stmt) {
+    public Value evaluateVariableStmt(VariableStmt stmt) {
         return mEnv.createVariable(
                 stmt.name,
                 stmt.value != null
-                        ? Value.extract(evaluate(stmt.value))
+                        ? Value.extract(evaluateExpr(stmt.value))
                         : Type.parseType(mEnv, stmt.type).nullValue());
     }
 
-    public Value evaluate(WhileStmt stmt) {
+    public Value evaluateWhileStmt(WhileStmt stmt) {
 
         mEnv = new Environment(mEnv);
 
         Value value = null;
-        while (Value.asBoolean(Value.extract(evaluate(stmt.condition)))) {
-            value = evaluate(stmt.body);
+        while (Value.asBoolean(Value.extract(evaluateExpr(stmt.condition)))) {
+            value = evaluateStmt(stmt.body);
             if (value instanceof ReturnValue)
                 break;
         }
@@ -259,43 +240,43 @@ public class Interpreter {
         return value;
     }
 
-    public Value evaluate(Expr expr) {
+    public Value evaluateExpr(Expr expr) {
 
         if (expr instanceof AssignmentExpr)
-            return evaluate((AssignmentExpr) expr);
+            return evaluateAssignmentExpr((AssignmentExpr) expr);
         if (expr instanceof BinaryExpr)
-            return evaluate((BinaryExpr) expr);
+            return evaluateBinaryExpr((BinaryExpr) expr);
         if (expr instanceof CallExpr)
-            return evaluate((CallExpr) expr);
+            return evaluateCallExpr((CallExpr) expr);
         if (expr instanceof ConditionExpr)
-            return evaluate((ConditionExpr) expr);
+            return evaluateConditionExpr((ConditionExpr) expr);
         if (expr instanceof ConstantExpr)
-            return evaluate((ConstantExpr) expr);
+            return evaluateConstantExpr((ConstantExpr) expr);
         if (expr instanceof IdentifierExpr)
-            return evaluate((IdentifierExpr) expr);
+            return evaluateIdentifierExpr((IdentifierExpr) expr);
         if (expr instanceof MemberExpr)
-            return evaluate((MemberExpr) expr);
+            return evaluateMemberExpr((MemberExpr) expr);
         if (expr instanceof UnaryExpr)
-            return evaluate((UnaryExpr) expr);
+            return evaluateUnaryExpr((UnaryExpr) expr);
 
         return Error.error("not yet implemented");
     }
 
-    public Value evaluate(AssignmentExpr expr) {
+    public Value evaluateAssignmentExpr(AssignmentExpr expr) {
         if (expr.assignee instanceof IdentifierExpr)
-            return mEnv.setVariable(((IdentifierExpr) expr.assignee).value, Value.extract(evaluate(expr.value)));
+            return mEnv.setVariable(((IdentifierExpr) expr.assignee).value, Value.extract(evaluateExpr(expr.value)));
         if (expr.assignee instanceof MemberExpr)
-            return ((ThingValue) Value.extract(evaluate(((MemberExpr) expr.assignee).thing)))
+            return ((ThingValue) Value.extract(evaluateExpr(((MemberExpr) expr.assignee).thing)))
                     .setField(((IdentifierExpr) ((MemberExpr) expr.assignee).member).value,
-                            Value.extract(evaluate(expr.value)));
+                            Value.extract(evaluateExpr(expr.value)));
 
         return Error.error("not yet implemented");
     }
 
-    public Value evaluate(BinaryExpr expr) {
+    public Value evaluateBinaryExpr(BinaryExpr expr) {
 
-        var left = Value.extract(evaluate(expr.left));
-        var right = Value.extract(evaluate(expr.right));
+        var left = Value.extract(evaluateExpr(expr.left));
+        var right = Value.extract(evaluateExpr(expr.right));
 
         switch (expr.operator) {
             case "&&":
@@ -330,29 +311,29 @@ public class Interpreter {
                 right.getType());
     }
 
-    public Value evaluate(CallExpr expr) {
+    public Value evaluateCallExpr(CallExpr expr) {
         Value[] args = new Value[expr.args.size()];
         for (int i = 0; i < args.length; i++) {
-            args[i] = Value.extract(evaluate(expr.args.get(i)));
+            args[i] = Value.extract(evaluateExpr(expr.args.get(i)));
         }
 
         if (expr.function instanceof IdentifierExpr)
             return evaluateFunction(null, ((IdentifierExpr) expr.function).value, args);
         if (expr.function instanceof MemberExpr)
-            return evaluateFunction(Value.extract(evaluate(((MemberExpr) expr.function).thing)),
+            return evaluateFunction(Value.extract(evaluateExpr(((MemberExpr) expr.function).thing)),
                     ((IdentifierExpr) ((MemberExpr) expr.function).member).value, args);
 
         return Error.error("not yet implemented");
     }
 
-    public Value evaluate(ConditionExpr expr) {
-        return Value.extract(evaluate(
-                Value.asBoolean(Value.extract(evaluate(expr.condition)))
+    public Value evaluateConditionExpr(ConditionExpr expr) {
+        return Value.extract(evaluateExpr(
+                Value.asBoolean(Value.extract(evaluateExpr(expr.condition)))
                         ? expr.thenExpr
                         : expr.elseExpr));
     }
 
-    public Value evaluate(ConstantExpr expr) {
+    public Value evaluateConstantExpr(ConstantExpr expr) {
 
         switch (expr.type) {
             case NUMBER:
@@ -366,17 +347,17 @@ public class Interpreter {
         return Error.error("undefined type '%s', value '%s'", expr.type, expr.value);
     }
 
-    public Value evaluate(IdentifierExpr expr) {
+    public Value evaluateIdentifierExpr(IdentifierExpr expr) {
         return mEnv.getVariable(expr.value);
     }
 
-    public Value evaluate(MemberExpr expr) {
-        return ((ThingValue) Value.extract(evaluate(expr.thing))).getField(((IdentifierExpr) expr.member).value);
+    public Value evaluateMemberExpr(MemberExpr expr) {
+        return ((ThingValue) Value.extract(evaluateExpr(expr.thing))).getField(((IdentifierExpr) expr.member).value);
     }
 
-    public Value evaluate(UnaryExpr expr) {
+    public Value evaluateUnaryExpr(UnaryExpr expr) {
 
-        var value = Value.extract(evaluate(expr.value));
+        var value = Value.extract(evaluateExpr(expr.value));
 
         switch (expr.operator) {
             case "-":

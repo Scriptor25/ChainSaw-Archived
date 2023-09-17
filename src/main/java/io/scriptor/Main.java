@@ -34,7 +34,7 @@ class Main {
                 var parser = new Parser(tokens);
                 var program = parser.parseProgram();
 
-                var result = interpreter.evaluate(program);
+                var result = interpreter.evaluateProgram(program);
                 if (result != null && result.getValue() != null)
                     System.out.println(result);
             }
@@ -57,7 +57,7 @@ class Main {
             var program = parser.parseProgram();
 
             var interpreter = new Interpreter();
-            interpreter.evaluate(program);
+            interpreter.evaluateProgram(program);
             var result = interpreter.evaluateFunction(null, "main");
             if (result != null && result.getValue() != null)
                 System.out.println(result);

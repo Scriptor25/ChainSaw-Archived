@@ -315,7 +315,7 @@ public class Lexer {
     }
 
     private static void error(int line, String fmt, Object... args) {
-        String msg = String.format("at line %d: %s", line, fmt, args);
+        String msg = String.format("at line %d: %s", line, String.format(fmt, args));
         throw new RuntimeException(msg);
     }
 

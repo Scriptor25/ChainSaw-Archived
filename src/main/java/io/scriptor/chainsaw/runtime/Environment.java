@@ -4,6 +4,7 @@ import io.scriptor.chainsaw.runtime.function.Function;
 import io.scriptor.chainsaw.runtime.function.NativeImplementation;
 import io.scriptor.chainsaw.runtime.function.Pair;
 import io.scriptor.chainsaw.runtime.type.*;
+import io.scriptor.chainsaw.runtime.value.CharValue;
 import io.scriptor.chainsaw.runtime.value.NativeValue;
 import io.scriptor.chainsaw.runtime.value.NumberValue;
 import io.scriptor.chainsaw.runtime.value.StringValue;
@@ -44,8 +45,10 @@ public class Environment {
                 }));
 
         Function.get(this, false, "inf", NumberType.get(this), Collections.emptyList(), false, null,
-                new NativeImplementation(
-                        env -> new NumberValue(env, Double.MAX_VALUE)));
+                new NativeImplementation(env -> new NumberValue(env, Double.MAX_VALUE)));
+
+        Function.get(this, false, "random", NumberType.get(this), Collections.emptyList(), false, null,
+                new NativeImplementation(env -> new NumberValue(env, Math.random())));
 
         params = new Vector<>();
         params.add(new Pair<>("x", NumberType.get(this)));
@@ -59,6 +62,21 @@ public class Environment {
 
         params = new Vector<>();
         params.add(new Pair<>("x", NumberType.get(this)));
+        Function.get(this, false, "abs", NumberType.get(this), params, false, null, new NativeImplementation(
+                env -> new NumberValue(env, Math.abs((double) env.getVariable("x").getValue()))));
+
+        params = new Vector<>();
+        params.add(new Pair<>("x", NumberType.get(this)));
+        Function.get(this, false, "cos", NumberType.get(this), params, false, null, new NativeImplementation(
+                env -> new NumberValue(env, Math.cos((double) env.getVariable("x").getValue()))));
+
+        params = new Vector<>();
+        params.add(new Pair<>("x", NumberType.get(this)));
+        Function.get(this, false, "tan", NumberType.get(this), params, false, null, new NativeImplementation(
+                env -> new NumberValue(env, Math.tan((double) env.getVariable("x").getValue()))));
+
+        params = new Vector<>();
+        params.add(new Pair<>("x", NumberType.get(this)));
         Function.get(this, false, "acos", NumberType.get(this), params, false, null, new NativeImplementation(
                 env -> new NumberValue(env, Math.acos((double) env.getVariable("x").getValue()))));
 
@@ -68,6 +86,24 @@ public class Environment {
         Function.get(this, false, "atan2", NumberType.get(this), params, false, null, new NativeImplementation(
                 env -> new NumberValue(env, Math.atan2((double) env.getVariable("y").getValue(),
                         (double) env.getVariable("x").getValue()))));
+
+        params = new Vector<>();
+        params.add(new Pair<>("base", NumberType.get(this)));
+        params.add(new Pair<>("p", NumberType.get(this)));
+        Function.get(this, false, "pow", NumberType.get(this), params, false, null, new NativeImplementation(
+                env -> new NumberValue(env, Math.pow((double) env.getVariable("base").getValue(),
+                        (double) env.getVariable("p").getValue()))));
+
+        Function.get(this, false, "length", NumberType.get(this), Collections.emptyList(), false, StringType.get(this),
+                new NativeImplementation(
+                        env -> new NumberValue(env, ((String) env.getVariable("my").getValue()).length())));
+
+        params = new Vector<>();
+        params.add(new Pair<>("index", NumberType.get(this)));
+        Function.get(this, false, "at", CharType.get(this), params, false, StringType.get(this),
+                new NativeImplementation(
+                        env -> new CharValue(env, ((String) env.getVariable("my").getValue())
+                                .charAt((int) (double) env.getVariable("index").getValue()))));
 
         // file
         params = new Vector<>();

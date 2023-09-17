@@ -1,93 +1,155 @@
-number pi = 3.1415926535897932385;
+## Things
+ thing: vec3;           ## Three Component Vector
+ thing: ray;            ## Ray
+ thing: hit_record;     ## Hit Record
+ thing: sphere;         ## Sphere
+ thing: hittable_list;  ## Hittable List
+ thing: interval;       ## Interval
+ thing: camera;         ## Camera
+ thing: lambertian;     ## Lambertian Material
+ thing: metal;          ## Metal Material
+ thing: dielectric;     ## Dielectric Material
 
-thing: vec3;
-thing: ray;
+## Constants
+ number infinity = inf();            ## Max Number Value
+ number pi = 3.1415926535897932385;  ## PI
 
-write_color [f: file, pixel_color: vec3] {
+## Boolean
+ number false = 0;                   ## Boolean False
+ number true = 1;                    ## Boolean True
+
+## Utility Functions
+
+degrees_to_radians: number [degrees: number] {
+    ret degrees * pi / 180;
+}
+
+linear_to_gamma: number [linear_component: number] {
+    ret sqrt(linear_component);
+}
+
+random: number [min: number, max: number] {
+    ret min + (max - min) * random();
+}
+
+min: number [a: number, b: number] {
+    ret a < b ? a : b;
+}
+
+progress_bar: string [message: string, length: number, percentage: number] {
+    char off = '_';
+    char on = '#';
+    string bar = message + " [";
+
+    string label = " " + floor(percentage * 100) + "% ";
+
+    number progress = percentage * length;
+    number label_start = (length - label.length()) * 0.5;
+    number label_end = (length + label.length()) * 0.5;
+
+    number i = 0;
+    for (; i < min(progress, label_start); i++)
+        bar += on;
+    for(; i < label_start; i++)
+        bar += off;
+    for(; i < label_end; i++)
+        bar += label.at(i - label_start);
+    for (; i < progress; i++)
+        bar += on;
+    for(; i < length; i++)
+        bar += off;
+    
+    ret bar += "]";
+}
+
+# Write Color To File Stream #
+write_color [f: file, pixel_color: vec3, samples_per_pixel: number] {
+    number r = pixel_color.x();
+    number g = pixel_color.y();
+    number b = pixel_color.z();
+
+    ## Divide the color by the number of samples.
+    number scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    ## Apply the linear to gamma transform.
+    r = linear_to_gamma(r);
+    g = linear_to_gamma(g);
+    b = linear_to_gamma(b);
+
+    ## Write the translated [0,255] value of each color component.
     f.out(
         "%s %s %s%n",
-        floor(255.999 * pixel_color.x),
-        floor(255.999 * pixel_color.y),
-        floor(255.999 * pixel_color.z)
+        floor(256 * intensity.clamp(r)),
+        floor(256 * intensity.clamp(g)),
+        floor(256 * intensity.clamp(b))
     );
 }
 
-hit_sphere: number [center: vec3, radius: number, r: ray] {
-    vec3 oc = r.origin() - center;
-    number a = (r.direction()).length_squared();
-    number half_b = dot(oc, r.direction());
-    number c = oc.length_squared() - radius * radius;
-    number discriminant = half_b * half_b - a * c;
-    
-    if (discriminant < 0) {
-        ret -1.0;
-    } else {
-        ret (-half_b - sqrt(discriminant)) / a;
-    }
-}
-
-ray_color: vec3 [r: ray] {
-    number t = hit_sphere(vec3(0, 0, -1), 0.5, r);
-    if (t > 0.0) {
-        vec3 N = unit_vector(r.at(t) - vec3(0, 0, -1));
-        ret N * 0.5 + 0.5;
-    }
-
-    vec3 unit_direction = unit_vector(r.direction());
-    number a = 0.5 * (unit_direction.y() + 1.0);
-    ret (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
-}
-
+# The Main Entry Function #
 main: number {
+    hittable_list world = hittable_list();
 
-    ## Image
+    void ground_material = lambertian(vec3(0.5, 0.5, 0.5));
+    world.add(sphere(vec3(0, -1000, 0), 1000, ground_material));
 
-    number aspect_ratio = 16 / 9;
-    number image_width = 400;
+    for (number a = -11; a < 11; a++) {
+        for (number b = -11; b < 11; b++) {
+            void choose_mat = random();
+            vec3 center = vec3(a + 0.9 * random(), 0.2, b + 0.9 * random());
 
-    ## Calculate the image height, and ensure that it's at least 1.
-    number image_height = floor(image_width / aspect_ratio);
-    image_height = (image_height < 1) ? 1 : image_height;
+            if ((center - vec3(4, 0.2, 0)).length() > 0.9) {
+                void sphere_material;
 
-    ## Camera
-
-    number focal_length = 1;
-    number viewport_height = 2;
-    number viewport_width = viewport_height * (image_width / image_height);
-    vec3 camera_center = vec3(0, 0, 0);
-
-    ## Calculate the vectors across the horizontal and down the vertical viewport edges.
-    vec3 viewport_u = vec3(viewport_width, 0, 0);
-    vec3 viewport_v = vec3(0, -viewport_height, 0);
-
-    ## Calculate the horizontal and vertical delta vectors from pixel to pixel.
-    vec3 pixel_delta_u = viewport_u / image_width;
-    vec3 pixel_delta_v = viewport_v / image_height;
-
-    ## Calculate the location of the upper left pixel.
-    vec3 viewport_upper_left = camera_center - vec3(0, 0, focal_length) - viewport_u / 2 - viewport_v / 2;
-    vec3 pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
-
-    ## Render
-
-    file f = file("output.ppm", "out");
-    f.out("P3%n%s %s\n255%n", image_width, image_height);
-
-    for (number j = 0; j < image_height; j++) {
-        out("\rScanlines remaining: %s ", image_height - j);
-        for (number i = 0; i < image_width; i++) {
-            vec3 pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
-            vec3 ray_direction = pixel_center - camera_center;
-            ray r = ray(camera_center, ray_direction);
-
-            vec3 pixel_color = ray_color(r);
-            write_color(f, pixel_color);
+                if (choose_mat < 0.8) {
+                    ## diffuse
+                    vec3 albedo = random_vec3() * random_vec3();
+                    sphere_material = lambertian(albedo);
+                    world.add(sphere(center, 0.2, sphere_material));
+                } else if (choose_mat < 0.95) {
+                    ## metal
+                    vec3 albedo = random_vec3(0.5, 1);
+                    number fuzz = random(0, 0.5);
+                    sphere_material = metal(albedo, fuzz);
+                    world.add(sphere(center, 0.2, sphere_material));
+                } else {
+                    ## glass
+                    sphere_material = dielectric(1.5);
+                    world.add(sphere(center, 0.2, sphere_material));
+                }
+            }
         }
     }
 
-    out("\rDone.                       %n");
+    void material1 = dielectric(1.5);
+    world.add(sphere(vec3(0, 1, 0), 1.0, material1));
 
-    f.close();
+    void material2 = lambertian(vec3(0.4, 0.2, 0.1));
+    world.add(sphere(vec3(-4, 1, 0), 1.0, material2));
+
+    void material3 = metal(vec3(0.7, 0.6, 0.5), 0.0);
+    world.add(sphere(vec3(4, 1, 0), 1.0, material3));
+
+    camera cam;
+
+    cam.output_file = "final.ppm";
+
+    cam.aspect_ratio      = 16.0 / 9.0;
+    cam.image_width       = 1200;
+    cam.samples_per_pixel = 500;
+    cam.max_depth         = 50;
+
+    cam.vfov     = 20;
+    cam.lookfrom = vec3(13, 2, 3);
+    cam.lookat   = vec3( 0, 0, 0);
+    cam.vup      = vec3( 0, 1, 0);
+
+    cam.defocus_angle = 0.6;
+    cam.focus_dist    = 10.0;
+
+    cam.render(world);
 
     ret 0;
 }
@@ -110,6 +172,18 @@ x: number -> vec3 { ret my.x; }
 y: number -> vec3 { ret my.y; }
 z: number -> vec3 { ret my.z; }
 
+set [v: vec3] -> vec3 {
+    my.x = v.x;
+    my.y = v.y;
+    my.z = v.z;
+}
+
+set [x: number, y: number, z: number] -> vec3 {
+    my.x = x;
+    my.y = y;
+    my.z = z;
+}
+
 (-): vec3 -> vec3 {
     ret vec3(-my.x, -my.y, -my.z);
 }
@@ -123,21 +197,21 @@ e: number [i: number] -> vec3 {
     }
 }
 
-(+): vec3 [v: vec3] -> vec3 {
+(+=): vec3 [v: vec3] -> vec3 {
     my.x += v.x;
     my.y += v.y;
     my.z += v.z;
     ret my;
 }
 
-(*): vec3 [t: number] -> vec3 {
+(*=): vec3 [t: number] -> vec3 {
     my.x *= t;
     my.y *= t;
     my.z *= t;
     ret my;
 }
 
-(/): vec3 [t: number] -> vec3 {
+(/=): vec3 [t: number] -> vec3 {
     ret my *= 1 / t;
 }
 
@@ -147,6 +221,20 @@ length: number -> vec3 {
 
 length_squared: number -> vec3 {
     ret my.x * my.x + my.y * my.y + my.z * my.z;
+}
+
+near_zero: number -> vec3 {
+    ## Return true if the vector is close to zero in all dimensions.
+    number s = 0.00000001;
+    ret (abs(my.x) < s) && (abs(my.y) < s) && (abs(my.z) < s);
+}
+
+random_vec3: vec3 {
+    ret vec3(random(), random(), random());
+}
+
+random_vec3: vec3 [min: number, max: number] {
+    ret vec3(random(min, max), random(min, max), random(min, max));
 }
 
 ## Vector Utility Functions
@@ -203,6 +291,44 @@ unit_vector: vec3 [v: vec3] {
     ret v / v.length();
 }
 
+random_in_unit_sphere: vec3 {
+    while (true) {
+        vec3 p = random_vec3(-1, 1);
+        if (p.length_squared() < 1)
+            ret p;
+    }
+}
+
+random_unit_vector: vec3 {
+    ret unit_vector(random_in_unit_sphere());
+}
+
+random_in_unit_disk: vec3 {
+    while (true) {
+        vec3 p = vec3(random(-1, 1), random(-1, 1), 0);
+        if (p.length_squared() < 1)
+            ret p;
+    }
+}
+
+random_on_hemisphere: vec3 [normal: vec3] {
+    vec3 on_unit_sphere = random_unit_vector();
+    if (dot(on_unit_sphere, normal) > 0.0) ## In the same hemisphere as the normal
+        ret on_unit_sphere;
+    ret -on_unit_sphere;
+}
+
+reflect: vec3 [v: vec3, n: vec3] {
+    ret v - 2 * dot(v, n) * n;
+}
+
+refract: vec3 [uv: vec3, n: vec3, etai_over_etat: number] {
+    number cos_theta = min(dot(-uv, n), 1.0);
+    vec3 r_out_perp = etai_over_etat * (uv + cos_theta * n);
+    vec3 r_out_parallel = -sqrt(abs(1.0 - r_out_perp.length_squared())) * n;
+    ret r_out_perp + r_out_parallel;
+}
+
 thing: ray {
     orig: vec3,
     dir: vec3
@@ -219,21 +345,369 @@ direction: vec3 -> ray { ret my.dir; }
 
 at: vec3 [t: number] -> ray { ret my.orig + t * my.dir; }
 
-get_sphere_uv: vec3 [p: vec3] {
+set [r: ray] -> ray {
+    my.orig = r.orig;
+    my.dir = r.dir;
+}
 
-    ## p: a given point on the sphere of radius one, centered at the origin.
-    ## u: returned value [0,1] of angle around the Y axis from X=-1.
-    ## v: returned value [0,1] of angle from Y=-1 to Y=+1.
-    ##     <1 0 0> yields <0.50 0.50>       <-1  0  0> yields <0.00 0.50>
-    ##     <0 1 0> yields <0.50 1.00>       < 0 -1  0> yields <0.50 0.00>
-    ##     <0 0 1> yields <0.25 0.50>       < 0  0 -1> yields <0.75 0.50>
+set [origin: vec3, direction: vec3] -> ray {
+    my.orig = origin;
+    my.dir = direction;
+}
 
-    number theta = acos(-p.y());
-    number phi = atan2(-p.z(), p.x()) + pi;
+thing: hit_record {
+    p: vec3,
+    normal: vec3,
+    mat: void,
+    t: number,
+    front_face: number,
+}
 
-    vec3 uv;
-    uv.x = phi / (2 * pi);
-    uv.y = theta / pi;
+set_face_normal [r: ray, outward_normal: vec3] -> hit_record {
+    my.front_face = dot(r.direction(), outward_normal) < 0;
+    my.normal = my.front_face ? outward_normal : -outward_normal;
+}
 
-    ret uv;
+set [rec: hit_record] -> hit_record {
+    my.p = rec.p;
+    my.normal = rec.normal;
+    my.t = rec.t;
+    my.front_face = rec.front_face;
+    my.mat = rec.mat;
+}
+
+thing: sphere {
+    center: vec3,
+    radius: number,
+    mat: void,
+}
+
+$sphere [center: vec3, radius: number, material: void] {
+    my.center = center;
+    my.radius = radius;
+    my.mat = material;
+}
+
+hit: number [r: ray, ray_t: interval, rec: hit_record] -> sphere {
+    vec3 oc = r.origin() - my.center;
+    number a = (r.direction()).length_squared();
+    number half_b = dot(oc, r.direction());
+    number c = oc.length_squared() - my.radius * my.radius;
+
+    number discriminant = half_b * half_b - a * c;
+    if (discriminant < 0) ret false;
+    number sqrtd = sqrt(discriminant);
+
+    ## Find the nearest root that lies in the acceptable range.
+    number root = (-half_b - sqrtd) / a;
+    if (!ray_t.surrounds(root)) {
+        root = (-half_b + sqrtd) / a;
+        if (!ray_t.surrounds(root))
+            ret false;
+    }
+
+    rec.t = root;
+    rec.p = r.at(rec.t);
+    vec3 outward_normal = (rec.p - my.center) / my.radius;
+    rec.set_face_normal(r, outward_normal);
+    rec.mat = my.mat;
+
+    ret true;
+}
+
+thing: hittable_list {
+    objects: list
+}
+
+$hittable_list {
+    my.objects = list();
+}
+
+$hittable_list [object: void] {
+    my.objects = list();
+    add(object);
+}
+
+clear -> hittable_list {
+    (my.objects).clear();
+}
+
+add [object: void] -> hittable_list {
+    my.objects.add(object);
+}
+
+hit: number [r: ray, ray_t: interval, rec: hit_record] -> hittable_list {
+    hit_record temp_rec;
+    number hit_anything = false;
+    number closest_so_far = ray_t.max;
+
+    for (number i = 0; i < my.objects.size(); i++) {
+        if ((my.objects.get(i)).hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            rec.set(temp_rec);
+        }
+    }
+
+    ret hit_anything;
+}
+
+thing: interval {
+    min: number,
+    max: number
+}
+
+# Default Interval Is Empty #
+$interval {
+    my.min = infinity;
+    my.max = -infinity;
+}
+
+$interval [min: number, max: number] {
+    my.min = min;
+    my.max = max;
+}
+
+contains: number [x: number] -> interval {
+    ret my.min <= x && x <= my.max;
+}
+
+surrounds: number [x: number] -> interval {
+    ret my.min < x && x < my.max;
+}
+
+clamp: number [x: number] -> interval {
+    ret x < my.min ? my.min : x > my.max ? my.max : x;
+}
+
+interval empty = interval(infinity, -infinity);     ## An Empty Interval
+interval universe = interval(-infinity, infinity);  ## An Interval From -Infinity To Infinity
+interval intensity = interval(0.000, 0.999);
+
+thing: camera {
+    # Public #
+    output_file: string,
+
+    aspect_ratio: number,      ## Ratio of image width over height
+    image_width: number,       ## Rendered image width in pixel count
+    samples_per_pixel: number, ## Count of random samples for each pixel
+    max_depth: number,         ## Maximum number of ray bounces into scene
+
+    vfov: number,              ## Vertical view angle (field of view)
+    lookfrom: vec3,            ## Point camera is looking from
+    lookat: vec3,              ## Point camera is looking at
+    vup: vec3,                 ## Camera-relative "up" direction
+
+    defocus_angle: number,     ## Variation angle of rays through each pixel
+    focus_dist: number,        ## Distance from camera lookfrom point to plane of perfect focus
+
+    # Private #
+    image_height: number,      ## Rendered image height
+    center: vec3,              ## Camera center
+    pixel00_loc: vec3,         ## Location of pixel 0, 0
+    pixel_delta_u: vec3,       ## Offset to pixel to the right
+    pixel_delta_v: vec3,       ## Offset to pixel below
+    u: vec3, v: vec3, w: vec3, ## Camera frame basis vectors
+    defocus_disk_u: vec3,      ## Defocus disk horizontal radius
+    defocus_disk_v: vec3,      ## Defocus disk vertical radius
+}
+
+$camera {
+    my.output_file = "output.ppm";
+
+    my.aspect_ratio = 16 / 9;
+    my.image_width = 100;
+    my.samples_per_pixel = 10;
+    my.max_depth = 10;
+
+    my.vfov = 90;
+    my.lookfrom = vec3(0, 0, -1);
+    my.lookat = vec3(0, 0, 0);
+    my.vup = vec3(0, 1, 0);
+
+    my.defocus_angle = 0;
+    my.focus_dist = 10;
+}
+
+render [world: hittable_list] -> camera {
+    my.initialize();
+
+    file f = file(my.output_file, "out");
+    f.out("P3%n%s %s\n255%n", my.image_width, my.image_height);
+
+    for (number j = 0; j < my.image_height; j++) {
+        out("\r%s", progress_bar("Rendering", 150, j / my.image_height));
+        for (number i = 0; i < my.image_width; i++) {
+            vec3 pixel_color = vec3(0, 0, 0);
+            for (number sample = 0; sample < my.samples_per_pixel; sample++) {
+                ray r = my.get_ray(i, j);
+                pixel_color += my.ray_color(r, my.max_depth, world);
+            }
+            write_color(f, pixel_color, my.samples_per_pixel);
+        }
+    }
+
+    f.close();
+
+    out("%nDone.%n");
+}
+
+initialize -> camera {
+    my.image_height = floor(my.image_width / my.aspect_ratio);
+    my.image_height = (my.image_height < 1) ? 1 : my.image_height;
+
+    my.center = my.lookfrom;
+
+    ## Determine viewport dimensions.
+    number theta = degrees_to_radians(my.vfov);
+    number h = tan(theta / 2);
+    number viewport_height = 2 * h * my.focus_dist;
+    number viewport_width = viewport_height * (my.image_width / my.image_height);
+
+    ## Calculate the u,v,w unit basis vectors for the camera coordinate frame.
+    my.w = unit_vector(my.lookfrom - my.lookat);
+    my.u = unit_vector(cross(my.vup, my.w));
+    my.v = cross(my.w, my.u);
+
+    ## Calculate the vectors across the horizontal and down the vertical viewport edges.
+    vec3 viewport_u = viewport_width * my.u;    ## Vector across viewport horizontal edge
+    vec3 viewport_v = viewport_height * -my.v;  ## Vector down viewport vertical edge
+
+    ## Calculate the horizontal and vertical delta vectors from pixel to pixel.
+    my.pixel_delta_u = viewport_u / my.image_width;
+    my.pixel_delta_v = viewport_v / my.image_height;
+
+    ## Calculate the location of the upper left pixel.
+    vec3 viewport_upper_left = my.center - (my.focus_dist * my.w) - viewport_u / 2 - viewport_v / 2;
+    my.pixel00_loc = viewport_upper_left + 0.5 * (my.pixel_delta_u + my.pixel_delta_v);
+
+    ## Calculate the camera defocus disk basis vectors.
+    number defocus_radius = my.focus_dist * tan(degrees_to_radians(my.defocus_angle / 2));
+    my.defocus_disk_u = my.u * defocus_radius;
+    my.defocus_disk_v = my.v * defocus_radius;
+}
+
+get_ray: ray [i: number, j: number] -> camera {
+    ## Get a randomly-sampled camera ray for the pixel at location i,j, originating from
+    ## the camera defocus disk.
+
+    vec3 pixel_center = my.pixel00_loc + (i * my.pixel_delta_u) + (j * my.pixel_delta_v);
+    vec3 pixel_sample = pixel_center + my.pixel_sample_square();
+
+    vec3 ray_origin = (my.defocus_angle <= 0) ? my.center : my.defocus_disk_sample();
+    vec3 ray_direction = pixel_sample - ray_origin;
+
+    ret ray(ray_origin, ray_direction);
+}
+
+defocus_disk_sample: vec3 -> camera {
+    ## Returns a random point in the camera defocus disk.
+    if (my.samples_per_pixel <= 1)
+        ret my.center;
+
+    vec3 p = random_in_unit_disk();
+    ret my.center + (p.x() * my.defocus_disk_u) + (p.y() * my.defocus_disk_v);
+}
+
+pixel_sample_square: vec3 -> camera {
+    ## Returns a random point in the square surrounding a pixel at the origin.
+    number px; number py;
+    if (my.samples_per_pixel <= 1) {
+        px = 0;
+        py = 0;
+    } else {
+        px = -0.5 + random();
+        py = -0.5 + random();
+    }
+    ret (px * my.pixel_delta_u) + (py * my.pixel_delta_v);
+}
+
+ray_color: vec3 [r: ray, depth: number, world: hittable_list] -> camera {
+    if (depth <= 0) ## If we've exceeded the ray bounce limit, no more light is gathered.
+        ret vec3(0, 0, 0);
+
+    hit_record rec;
+
+    if (world.hit(r, interval(0.001, infinity), rec)){
+        ray scattered;
+        vec3 attenuation;
+        if (rec.mat.scatter(r, rec, attenuation, scattered))
+            ret attenuation * my.ray_color(scattered, depth - 1, world);
+        ret vec3(0, 0, 0);
+    }
+
+    vec3 unit_direction = unit_vector(r.direction());
+    number a = 0.5 * (unit_direction.y() + 1.0);
+    ret (1.0 - a) * vec3(1.0, 1.0, 1.0) + a * vec3(0.5, 0.7, 1.0);
+}
+
+thing: lambertian {
+    albedo: vec3
+}
+
+$lambertian [a: vec3] {
+    my.albedo = a;
+}
+
+scatter: number [r_in: ray, rec: hit_record, attenuation: vec3, scattered: ray] -> lambertian {
+    vec3 scatter_direction = rec.normal + random_unit_vector();
+
+    ## Catch degenerate scatter direction
+    if (scatter_direction.near_zero())
+        scatter_direction = rec.normal;
+
+    scattered.set(rec.p, scatter_direction);
+    attenuation.set(my.albedo);
+    ret true;
+}
+
+thing: metal {
+    albedo: vec3,
+    fuzz: number,
+}
+
+$metal [a: vec3, f: number] {
+    my.albedo = a;
+    my.fuzz = f;
+}
+
+scatter: number [r_in: ray, rec: hit_record, attenuation: vec3, scattered: ray] -> metal {
+    vec3 reflected = reflect(unit_vector(r_in.direction()), rec.normal);
+    scattered.set(rec.p, reflected + my.fuzz * random_unit_vector());
+    attenuation.set(my.albedo);
+    ret (dot(scattered.direction(), rec.normal) > 0);
+}
+
+thing: dielectric {
+    ir: number  ## Index of Refraction
+}
+
+$dielectric [index_of_refraction: number] {
+    my.ir = index_of_refraction;
+}
+
+scatter: number [r_in: ray, rec: hit_record, attenuation: vec3, scattered: ray] -> dielectric {
+    attenuation.set(1.0, 1.0, 1.0);
+    number refraction_ratio = rec.front_face ? (1.0 / my.ir) : my.ir;
+
+    vec3 unit_direction = unit_vector(r_in.direction());
+    number cos_theta = min(dot(-unit_direction, rec.normal), 1.0);
+    number sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+
+    number cannot_refract = refraction_ratio * sin_theta > 1.0;
+    vec3 direction;
+    if (cannot_refract || reflectance(cos_theta, refraction_ratio) > random())
+        direction = reflect(unit_direction, rec.normal);
+    else
+        direction = refract(unit_direction, rec.normal, refraction_ratio);
+
+    scattered.set(rec.p, direction);
+    ret true;
+}
+
+reflectance: number [cosine: number, ref_idx: number] {
+    ## Use Schlick's approximation for reflectance.
+    number r0 = (1 - ref_idx) / (1 + ref_idx);
+    r0 = r0 * r0;
+    ret r0 + (1 - r0) * pow(1 - cosine, 5);
 }

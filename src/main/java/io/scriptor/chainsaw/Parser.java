@@ -157,7 +157,7 @@ public class Parser {
 
     public Stmt parseStmt() {
 
-        if (nextType(TokenType.SEMICOLON))
+        if (findAndEat(TokenType.SEMICOLON))
             return null;
 
         if (nextType(TokenType.BRACE_OPEN))
@@ -228,8 +228,10 @@ public class Parser {
         stmt.isOperator = findAndEat(TokenType.PAREN_OPEN);
         if (stmt.isOperator) {
             stmt.name = eat().value;
-            if (!findAndEat(TokenType.PAREN_CLOSE))
+            if (!findAndEat(TokenType.PAREN_CLOSE)) {
                 stmt.name += eat().value;
+                expect(TokenType.PAREN_CLOSE);
+            }
         } else {
             stmt.isConstructor = findAndEat(TokenType.DOLLAR);
             stmt.name = expect(TokenType.IDENTIFIER).value;
@@ -562,11 +564,11 @@ public class Parser {
                 return expr;
             }
             case MINUS:
-                return new UnaryExpr("-", parseExpr());
+                return new UnaryExpr("-", parseUnaryExpr());
             case EXCLAM:
-                return new UnaryExpr("!", parseExpr());
+                return new UnaryExpr("!", parseUnaryExpr());
             case TILDE:
-                return new UnaryExpr("~", parseExpr());
+                return new UnaryExpr("~", parseUnaryExpr());
 
             default:
                 return error(token.line, "undefined token type '%s' ('%s')", token.type, token.value);
