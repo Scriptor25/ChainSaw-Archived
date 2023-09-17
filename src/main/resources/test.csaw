@@ -24,7 +24,7 @@ fib: number [n: number] {
 
 main: number {
 
-    person p = person("Felix Schreiber", 17, "Graf-Tilly-Str. 31 Holnstein", 92334, "f.schreiber.2006@proton.me");
+    person p = person("Felix Schreiber", 17, "Somewhere over the rainbow", 12345, "f.schreiber.2000@web.de");
     p.say("Hi!");
 
     for (number i = 0; i <= 10; i++)
