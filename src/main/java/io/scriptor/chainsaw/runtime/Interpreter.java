@@ -1,12 +1,15 @@
 package io.scriptor.chainsaw.runtime;
 
+import io.scriptor.chainsaw.Error;
 import io.scriptor.chainsaw.FileUtil;
 import io.scriptor.chainsaw.Lexer;
 import io.scriptor.chainsaw.Parser;
 import io.scriptor.chainsaw.ast.Program;
 import io.scriptor.chainsaw.ast.expr.*;
 import io.scriptor.chainsaw.ast.stmt.*;
+import io.scriptor.chainsaw.lang.StdList;
 import io.scriptor.chainsaw.runtime.function.*;
+import io.scriptor.chainsaw.runtime.type.NativeType;
 import io.scriptor.chainsaw.runtime.type.ThingType;
 import io.scriptor.chainsaw.runtime.type.Type;
 import io.scriptor.chainsaw.runtime.type.VoidType;
@@ -17,14 +20,21 @@ import java.util.*;
 
 public class Interpreter {
 
-    private Environment mEnv = new Environment(this);
+    private Environment mEnv;
     private String mExecutionPath;
-
-    public Interpreter() {
-    }
 
     public Interpreter(String executionPath) {
         mExecutionPath = executionPath;
+        mEnv = new Environment(this);
+    }
+
+    public Interpreter(String executionPath, Environment env) {
+        mExecutionPath = executionPath;
+        mEnv = env;
+    }
+
+    public String getExecutionPath() {
+        return mExecutionPath;
     }
 
     public Value evaluateProgram(Program program) {
@@ -36,63 +46,90 @@ public class Interpreter {
         return value;
     }
 
-    public Value evaluateFunction(Value thing, String name, Value... args) {
-        var func = mEnv.getFunction(thing, name, args);
+    public Value evaluateFunction(Value my, String name, Value... args) {
+        var func = mEnv.getFunction(my, name, args);
         if (func == null)
             return Error.error("undefined function '%s', %s%s", name,
                     Arrays.toString(Value.toTypeArray(args)),
-                    thing != null ? " -> " + thing.getType().toString() : "");
+                    my != null ? " -> " + my.getType().toString() : "");
 
         if (func.isOpaque())
             return Error.error("function '%s', %s%s is opaque", name,
                     Arrays.toString(Value.toTypeArray(args)),
-                    thing != null ? " -> " + thing.getType().toString() : "");
+                    my != null ? " -> " + my.getType().toString() : "");
 
         mEnv = new Environment(mEnv);
-
-        var params = func.getParameters();
-        int i = 0;
-        for (; i < params.size(); i++)
-            mEnv.createVariable(params.get(i).first, args[i]);
-
-        for (int j = i; i < args.length; i++)
-            mEnv.createVariable("vararg" + (i - j), args[i]);
-
-        if (func.getSuperType() != null)
-            mEnv.createVariable("my", thing);
 
         Value result = null;
 
         if (func.getImplementation() instanceof ASTImplementation) {
-            var impl = (ASTImplementation) func.getImplementation();
+
+            var params = func.getParameters();
+            int i = 0;
+            for (; i < params.size(); i++)
+                mEnv.createVariable(params.get(i).first, args[i]);
+
+            var varargs = new NativeValue<>(mEnv, NativeType.get(mEnv, "list"), new StdList());
+            for (; i < args.length; i++)
+                varargs.getValue().add(args[i]);
+            mEnv.createVariable("varargs", varargs);
+
+            if (func.getSuperType() != null)
+                mEnv.createVariable("my", my);
 
             if (func.isConstructor())
                 mEnv.createVariable("my", func.getResultType().nullValue());
 
+            var impl = (ASTImplementation) func.getImplementation();
             result = evaluateBodyStmt(impl.getBody());
 
-            if (func.isConstructor())
-                result = new ReturnValue(mEnv.getVariable("my"), mEnv.getDepth());
+            if (func.isConstructor()) {
+                if (result != null && result.isReturn() && ((ReturnValue) result).isFrom(mEnv))
+                    return Error.error("function '%s', %s is a constructor, so it should not return anything!");
 
-            if (result instanceof ReturnValue) {
-                var ret = (ReturnValue) result;
-                if (ret.isReceiver(mEnv) && !ret.getType().equals(func.getResultType())) {
-                    mEnv = mEnv.getParent();
-                    return Error.error("function '%s', %s%s returns wrong data type: %s", name,
+                result = mEnv.getVariable("my");
+            } else if (result != null && result.isReturn()) {
+                if (((ReturnValue) result).isReceiver(mEnv) && !result.getType().equals(func.getResultType()))
+                    return Error.error(
+                            "function '%s', %s returns wrong data type: %s",
+                            name,
                             Arrays.toString(Value.toTypeArray(args)),
-                            thing != null ? " -> " + thing.getType().toString() : "",
-                            ret.getType());
-                }
-            } else if (!func.getResultType().isVoid()) {
-                mEnv = mEnv.getParent();
-                return Error.error("function '%s', %s%s is not void, but doesn't return anything", name,
+                            result.getType());
+            } else if (!func.getResultType().isVoid())
+                return Error.error(
+                        "return type of function '%s', %s is %s, but it doesn't return anything",
+                        name,
                         Arrays.toString(Value.toTypeArray(args)),
-                        thing != null ? " -> " + thing.getType().toString() : "");
-            }
+                        func.getResultType());
+
         } else if (func.getImplementation() instanceof NativeImplementation) {
             var impl = (NativeImplementation) func.getImplementation();
 
-            result = impl.invoke(mEnv);
+            List<Object> arguments = new Vector<>();
+            var params = func.getParameters();
+
+            if (my != null && !(my instanceof NativeValue))
+                arguments.add(my);
+
+            int i = 0;
+            for (; i < params.size(); i++)
+                arguments.add(args[i]);
+
+            if (func.isVarArg()) {
+                Object[] varargs = new Object[args.length - i];
+                for (int j = i; i < args.length; i++)
+                    varargs[i - j] = args[i];
+
+                arguments.add(varargs.length == 0 ? null : varargs);
+            }
+
+            result = impl.invoke(mEnv,
+                    my == null
+                            ? null
+                            : my instanceof NativeValue ? ((NativeValue<?>) my).getValue() : null,
+                    arguments.size() == 0
+                            ? null
+                            : arguments.toArray());
         }
 
         mEnv = mEnv.getParent();
@@ -206,15 +243,21 @@ public class Interpreter {
     }
 
     public Value evaluateIncStmt(IncStmt stmt) {
+        var file = new File(mExecutionPath, stmt.path);
         var source = FileUtil.readFile(mExecutionPath == null
                 ? stmt.path
-                : new File(mExecutionPath, stmt.path).getPath());
+                : file.getPath());
 
         var tokens = Lexer.tokenize(source);
         var parser = new Parser(tokens);
         var program = parser.parseProgram();
 
-        return evaluateProgram(program);
+        var backupPath = mExecutionPath;
+        mExecutionPath = file.getParent();
+        var value = evaluateProgram(program);
+        mExecutionPath = backupPath;
+
+        return value;
     }
 
     public Value evaluateReturnStmt(ReturnStmt stmt) {

@@ -124,9 +124,7 @@ public class Parser {
 
     private static <T> T error(int line, String fmt, Object... args) {
         var msg = String.format(fmt, args);
-        var err = String.format("at line %d: %s", line, msg);
-        System.err.println(err);
-        throw new RuntimeException(err);
+        return Error.error("at line %d: %s", line, msg);
     }
 
     public Param parseParam() {
@@ -261,13 +259,13 @@ public class Parser {
             expect(TokenType.BRACKET_CLOSE);
         }
 
+        if (findAndEat(TokenType.MINUS, TokenType.GREATER)) { // member
+            stmt.superType = expect(TokenType.IDENTIFIER).value;
+        }
+
         if (nextValue("var")) { // vararg
             eat();
             stmt.isVararg = true;
-        }
-
-        if (findAndEat(TokenType.MINUS, TokenType.GREATER)) { // member
-            stmt.superType = expect(TokenType.IDENTIFIER).value;
         }
 
         if (findAndEat(TokenType.SEMICOLON))

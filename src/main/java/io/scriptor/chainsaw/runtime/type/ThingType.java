@@ -1,7 +1,7 @@
 package io.scriptor.chainsaw.runtime.type;
 
+import io.scriptor.chainsaw.Error;
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.Error;
 import io.scriptor.chainsaw.runtime.value.ThingValue;
 import io.scriptor.chainsaw.runtime.value.Value;
 

@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw.runtime;
+package io.scriptor.chainsaw;
 
 public class Error {
 

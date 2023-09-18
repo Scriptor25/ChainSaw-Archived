@@ -3,8 +3,8 @@ package io.scriptor.chainsaw.runtime.value;
 import java.util.List;
 import java.util.Vector;
 
+import io.scriptor.chainsaw.Error;
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.Error;
 import io.scriptor.chainsaw.runtime.type.Type;
 
 public abstract class Value {
@@ -47,6 +47,10 @@ public abstract class Value {
         return getType().isNative();
     }
 
+    public boolean isReturn() {
+        return this instanceof ReturnValue;
+    }
+
     @Override
     public String toString() {
         if (getValue() == null)
@@ -57,6 +61,19 @@ public abstract class Value {
     @Override
     public boolean equals(Object other) {
         return other != null && this.getClass().isInstance(other) || other == this;
+    }
+
+    public static Value fromObject(Environment env, Object object) {
+        if (object == null)
+            return null;
+
+        if (object instanceof Value)
+            return Value.extract((Value) object);
+
+        var type = Type.parseType(env, object.getClass());
+        var value = type.nullValue().setValue(object);
+
+        return value;
     }
 
     public static Value extract(Value value) {

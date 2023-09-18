@@ -19,7 +19,20 @@ public class NumberValue extends Value {
 
     @Override
     public NumberValue setValue(Object value) {
-        mValue = (double) value;
+        if (value instanceof Boolean)
+            mValue = ((boolean) value) ? 1 : 0;
+        else if (value instanceof Byte)
+            mValue = (byte) value;
+        else if (value instanceof Short)
+            mValue = (short) value;
+        else if (value instanceof Integer)
+            mValue = (int) value;
+        else if (value instanceof Long)
+            mValue = (long) value;
+        else if (value instanceof Float)
+            mValue = (float) value;
+        else if (value instanceof Double)
+            mValue = (double) value;
         return this;
     }
 

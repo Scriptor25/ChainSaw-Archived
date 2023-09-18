@@ -32,4 +32,8 @@ public class ReturnValue extends Value {
         return env.getDepth() < mDepth;
     }
 
+    public boolean isFrom(Environment env) {
+        return env.getDepth() == mDepth;
+    }
+
 }

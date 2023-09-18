@@ -1,29 +1,38 @@
 package io.scriptor.chainsaw.runtime.function;
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.Error;
 import io.scriptor.chainsaw.runtime.value.Value;
 
 public class NativeImplementation implements FunctionImplementation {
 
-    @FunctionalInterface
-    public static interface NativeFunction {
+    private final Method mMethod;
+    private final Constructor<?> mConstructor;
 
-        Value invoke(Environment env) throws Exception;
+    public NativeImplementation(Method mthd) {
+        mMethod = mthd;
+        mConstructor = null;
     }
 
-    private final NativeFunction mFunction;
-
-    public NativeImplementation(NativeFunction function) {
-        mFunction = function;
+    public NativeImplementation(Constructor<?> cons) {
+        mMethod = null;
+        mConstructor = cons;
     }
 
-    public Value invoke(Environment env) {
+    public Value invoke(Environment env, Object my, Object... args) {
         try {
-            return mFunction.invoke(env);
-        } catch (Exception e) {
-            Error.error("from native function: %s", e.getMessage());
-            return null;
+            if (mMethod != null)
+                return Value.fromObject(env, mMethod.invoke(my, args));
+
+            if (mConstructor != null)
+                return Value.fromObject(env, mConstructor.newInstance(args));
+        } catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException
+                | InstantiationException e) {
+            e.printStackTrace();
         }
+        return null;
     }
 }

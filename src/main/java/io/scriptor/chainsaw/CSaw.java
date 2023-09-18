@@ -1,26 +1,22 @@
-package io.scriptor;
+package io.scriptor.chainsaw;
 
-import io.scriptor.chainsaw.Lexer;
-import io.scriptor.chainsaw.Parser;
 import io.scriptor.chainsaw.runtime.Interpreter;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 
-class Main {
+class CSaw {
 
     public static void main(String[] args) throws IOException {
 
         if (args.length == 0) { // interpreter shell
-            String executionPath = System.getProperty("user.dir");
+            final var executionPath = System.getProperty("user.dir");
 
             var interpreter = new Interpreter(executionPath);
             while (true) {
 
                 System.out.print(">> ");
-                String source = System.console().readLine().trim();
+                final var source = System.console().readLine().trim();
 
                 if (source.startsWith("--")) {
                     switch (source) {
@@ -36,16 +32,19 @@ class Main {
                         case "--path":
                             System.out.println(executionPath);
                             break;
+                        case "--pause":
+                            System.out.println("Resuming");
+                            break;
                     }
 
                     continue;
                 }
 
-                var tokens = Lexer.tokenize(source);
-                var parser = new Parser(tokens);
-                var program = parser.parseProgram();
+                final var tokens = Lexer.tokenize(source);
+                final var parser = new Parser(tokens);
+                final var program = parser.parseProgram();
 
-                var result = interpreter.evaluateProgram(program);
+                final var result = interpreter.evaluateProgram(program);
                 if (result != null && result.getValue() != null)
                     System.out.println(result);
             }
@@ -53,34 +52,24 @@ class Main {
 
         if (args.length == 1) { // run file
 
-            String executionPath = new File(args[0]).getParent();
+            final var executionPath = new File(args[0]).getParent();
+            final var source = FileUtil.readFile(args[0]);
 
-            System.out.println(executionPath);
+            final var tokens = Lexer.tokenize(source);
+            final var parser = new Parser(tokens);
+            final var program = parser.parseProgram();
 
-            String source = "";
-            try (var reader = new BufferedReader(new FileReader(args[0]))) {
-
-                var builder = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null)
-                    builder.append(line).append('\n');
-
-                source = builder.toString();
-            }
-
-            var tokens = Lexer.tokenize(source);
-            var parser = new Parser(tokens);
-            var program = parser.parseProgram();
-
-            var interpreter = new Interpreter(executionPath);
+            final var interpreter = new Interpreter(executionPath);
             interpreter.evaluateProgram(program);
-            var result = interpreter.evaluateFunction(null, "main");
+
+            final var result = interpreter.evaluateFunction(null, "main");
             if (result != null && result.getValue() != null)
                 System.out.println(result);
 
             return;
         }
 
-        System.out.println("Use 'csaw' to run the interpreter shell, or 'csaw <filepath>' to run a file");
+        System.out
+                .println("Use with no args to run the interpreter shell, or add a (.csaw) file path to run this file");
     }
 }

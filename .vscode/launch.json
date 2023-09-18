@@ -8,24 +8,24 @@
             "type": "java",
             "name": "CSaw Shell",
             "request": "launch",
-            "mainClass": "io.scriptor.Main",
+            "mainClass": "io.scriptor.chainsaw.CSaw",
             "projectName": "chainsaw"
         },
         {
             "type": "java",
             "name": "CSaw Test",
             "request": "launch",
-            "mainClass": "io.scriptor.Main",
+            "mainClass": "io.scriptor.chainsaw.CSaw",
             "projectName": "chainsaw",
-            "args": ["src/main/resources/test.csaw"]
+            "args": ["csaw/test.csaw"]
         },
         {
             "type": "java",
             "name": "CSaw RTX",
             "request": "launch",
-            "mainClass": "io.scriptor.Main",
+            "mainClass": "io.scriptor.chainsaw.CSaw",
             "projectName": "chainsaw",
-            "args": ["src/main/resources/rtx/rtx.csaw"]
+            "args": ["csaw/rtx/rtx.csaw"]
         }
     ]
 }

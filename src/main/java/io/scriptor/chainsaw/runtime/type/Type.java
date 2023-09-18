@@ -1,8 +1,8 @@
 package io.scriptor.chainsaw.runtime.type;
 
+import io.scriptor.chainsaw.Error;
 import io.scriptor.chainsaw.runtime.Environment;
-import io.scriptor.chainsaw.runtime.Error;
-import io.scriptor.chainsaw.runtime.value.Value;
+import io.scriptor.chainsaw.runtime.value.*;
 
 public abstract class Type {
 
@@ -73,6 +73,31 @@ public abstract class Type {
             return type;
 
         return Error.error("undefined type '%s'", str);
+    }
+
+    public static Type parseType(Environment env, Class<?> cls) {
+        if (cls == null)
+            return null;
+
+        if (cls.equals(boolean.class) ||
+                cls.equals(Boolean.class) ||
+                cls.equals(byte.class) ||
+                cls.equals(short.class) ||
+                cls.equals(int.class) ||
+                cls.equals(long.class) ||
+                cls.equals(float.class) ||
+                cls.equals(double.class) ||
+                Number.class.isAssignableFrom(cls))
+            return NumberType.get(env);
+
+        if (cls.equals(String.class))
+            return StringType.get(env);
+
+        var type = NativeType.get(env, cls);
+        if (type != null)
+            return type;
+
+        return VoidType.get(env);
     }
 
 }

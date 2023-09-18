@@ -1,0 +1,15 @@
+main: number {
+    person p;
+    p.name = "Test";
+    p.say("Hello", "123");
+
+    ret 0;
+}
+
+thing: person {
+    name: string
+}
+
+say -> person var {
+    out("%s says %s%n", my.name, varargs);
+}

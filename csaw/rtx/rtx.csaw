@@ -46,7 +46,7 @@ main: number {
 
     camera cam;
 
-    cam.output_file = "final.ppm";
+    cam.output_file = "C:\\Users\\Felix Schreiber\\Documents\\GitHub\\ChainSaw\\output\\final.ppm";
 
     cam.aspect_ratio      = 16.0 / 9.0;
     cam.image_width       = 1200;
