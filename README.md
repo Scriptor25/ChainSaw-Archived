@@ -114,7 +114,7 @@ If, while, for and switch are just like in any other C language:
             ret "February";
 
         default:
-            ret "To lazy to add any other month";
+            ret "Too lazy to add any other month";
     }
 
 ### Return
@@ -172,6 +172,8 @@ You can following operators for binary operations:
  - `>`: greater than
  - `<=`: less than equal
  - `>=`: greater than equal
+ - `&&`: and
+ - `||`: or
 
 ### Unary Operators
 
