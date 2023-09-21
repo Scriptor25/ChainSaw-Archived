@@ -79,21 +79,31 @@ public abstract class Type {
         if (cls == null)
             return null;
 
-        if (cls.equals(boolean.class) ||
+        if (cls.equals(CharValue.class) ||
+                cls.equals(Character.class) ||
+                cls.equals(char.class))
+            return CharType.get(env);
+
+        if (cls.equals(NumberValue.class) ||
                 cls.equals(Boolean.class) ||
-                cls.equals(byte.class) ||
-                cls.equals(short.class) ||
-                cls.equals(int.class) ||
-                cls.equals(long.class) ||
-                cls.equals(float.class) ||
-                cls.equals(double.class) ||
-                Number.class.isAssignableFrom(cls))
+                Number.class.isAssignableFrom(cls) ||
+                cls.isPrimitive())
             return NumberType.get(env);
 
-        if (cls.equals(String.class))
+        if (cls.equals(StringValue.class) ||
+                CharSequence.class.isAssignableFrom(cls))
             return StringType.get(env);
 
-        var type = NativeType.get(env, cls);
+        if (cls.equals(NativeValue.class))
+            return NativeType.get(env, cls.getTypeParameters()[0].getGenericDeclaration());
+
+        if (cls.equals(VoidValue.class) ||
+                cls.equals(Void.class) ||
+                cls.equals(void.class) ||
+                cls.equals(Object.class))
+            return VoidType.get(env);
+
+        final var type = NativeType.get(env, cls);
         if (type != null)
             return type;
 

@@ -3,7 +3,7 @@ main: number {
     p.name = "Test";
     p.say("Hello", "123");
 
-    ret 0;
+    ret p.name.length();
 }
 
 thing: person {

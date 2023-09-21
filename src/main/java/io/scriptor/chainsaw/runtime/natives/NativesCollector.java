@@ -61,7 +61,8 @@ public class NativesCollector {
                 for (var cons : constructors) {
                     List<Pair<String, Type>> parameters = new Vector<>();
                     for (var param : cons.getParameters())
-                        parameters.add(new Pair<String, Type>(param.getName(), Type.parseType(env, param.getType())));
+                        parameters.add(
+                                new Pair<String, Type>(param.getName(), Type.parseType(env, param.getType())));
 
                     if (cons.isVarArgs())
                         parameters.remove(parameters.size() - 1);
@@ -69,7 +70,7 @@ public class NativesCollector {
                     Function.get(env,
                             true,
                             alias,
-                            Type.parseType(env, cons.getDeclaringClass()),
+                            Type.parseType(env, cls),
                             parameters,
                             cons.isVarArgs(),
                             null,
