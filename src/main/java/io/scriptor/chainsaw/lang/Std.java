@@ -19,7 +19,7 @@ public class Std {
 
             System.out.printf(fmt, newArgs);
         } else
-            System.out.print(fmt);
+            System.out.printf(fmt);
     }
 
     public static double inf() {

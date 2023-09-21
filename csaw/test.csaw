@@ -1,17 +1,17 @@
-main: number {
-    person p;
-    p.name = "Test";
-    p.say("Hello", "123");
+inc "bool.csaw";
 
-    out("%.0f %.3f%n", 123, 0.123);
+main: number {
+
+    start();
+    while (true)
+        update();
+    end();
 
     ret 0;
 }
 
-thing: person {
-    name: string
-}
+start {}
 
-say -> person var {
-    out("%s says %s%n", my.name, varargs);
-}
+update {}
+
+end {}
