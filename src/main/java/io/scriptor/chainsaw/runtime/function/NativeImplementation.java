@@ -60,8 +60,6 @@ public class NativeImplementation implements FunctionImplementation {
             return null;
 
         if (object.getClass().isArray()) {
-            System.out.println("hi");
-
             final var src = (Object[]) object;
             final var dst = new Object[src.length];
             for (int i = 0; i < src.length; i++)
@@ -74,11 +72,22 @@ public class NativeImplementation implements FunctionImplementation {
 
         if (object instanceof Value) {
             final var value = ((Value) object).getValue();
-            if (value.getClass().isPrimitive())
-                return type.cast(value);
+            if (type.equals(double.class))
+                return ((Double) value).doubleValue();
+            if (type.equals(float.class))
+                return ((Double) value).floatValue();
+            if (type.equals(long.class))
+                return ((Double) value).longValue();
+            if (type.equals(int.class))
+                return ((Double) value).intValue();
+            if (type.equals(short.class))
+                return ((Double) value).shortValue();
+            if (type.equals(byte.class))
+                return ((Double) value).byteValue();
+            if (type.equals(boolean.class))
+                return ((Double) value) != 0;
 
-            if (value instanceof Double)
-                return type.cast(((Double) value).doubleValue());
+            return type.cast(value);
         }
 
         return Error.error("you are a complete faaaailiure!");
