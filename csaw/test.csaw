@@ -3,7 +3,9 @@ main: number {
     p.name = "Test";
     p.say("Hello", "123");
 
-    ret p.name.length();
+    out("%.0f %.3f%n", 123, 0.123);
+
+    ret 0;
 }
 
 thing: person {

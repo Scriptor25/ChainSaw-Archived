@@ -1,6 +1,7 @@
 package io.scriptor.chainsaw.lang;
 
 import io.scriptor.chainsaw.runtime.natives.CSawNative;
+import io.scriptor.chainsaw.runtime.value.Value;
 
 @CSawNative
 public class Std {
@@ -9,7 +10,16 @@ public class Std {
     }
 
     public static void out(String fmt, Object... args) {
-        System.out.printf(fmt, args);
+        if (args != null) {
+            Object[] newArgs = new Object[args.length];
+            for (int i = 0; i < args.length; i++)
+                newArgs[i] = (args[i] instanceof Value)
+                        ? ((Value) args[i]).getValue()
+                        : args[i];
+
+            System.out.printf(fmt, newArgs);
+        } else
+            System.out.print(fmt);
     }
 
     public static double inf() {
