@@ -22,6 +22,19 @@ public class Std {
             System.out.printf(fmt);
     }
 
+    public static String in(String fmt, Object... args) {
+        if (args != null) {
+            Object[] newArgs = new Object[args.length];
+            for (int i = 0; i < args.length; i++)
+                newArgs[i] = (args[i] instanceof Value)
+                        ? ((Value) args[i]).getValue()
+                        : args[i];
+
+            return System.console().readLine(fmt, newArgs);
+        } else
+            return System.console().readLine(fmt);
+    }
+
     public static double inf() {
         return Double.MAX_VALUE;
     }
@@ -48,5 +61,9 @@ public class Std {
 
     public static double floor(double x) {
         return Math.floor(x);
+    }
+
+    public static double atan2(double y, double x) {
+        return Math.atan2(y, x);
     }
 }

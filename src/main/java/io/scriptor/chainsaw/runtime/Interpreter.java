@@ -287,11 +287,17 @@ public class Interpreter {
     }
 
     public Value evaluateVariableStmt(VariableStmt stmt) {
+        final var type = Type.parseType(mEnv, stmt.type);
+        var value = stmt.value != null
+                ? Value.extract(evaluateExpr(stmt.value))
+                : type.nullValue();
+
+        if (!value.getType().equals(type))
+            value = Value.cast(mEnv, value, type);
+
         return mEnv.createVariable(
                 stmt.name,
-                stmt.value != null
-                        ? Value.extract(evaluateExpr(stmt.value))
-                        : Type.parseType(mEnv, stmt.type).nullValue());
+                value);
     }
 
     public Value evaluateWhileStmt(WhileStmt stmt) {

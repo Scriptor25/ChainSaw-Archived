@@ -88,6 +88,12 @@ public class Environment {
             else
                 return Error.error("undefined variable '%s'", name);
 
+        if (!mVariables.get(name).getType().equals(value.getType()))
+            return Error.error("cannot assign value of type %s to variable '%s' (type %s)",
+                    value.getType(),
+                    name,
+                    mVariables.get(name).getType());
+
         mVariables.put(name, value);
         return value;
     }

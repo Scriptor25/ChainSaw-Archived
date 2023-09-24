@@ -1,0 +1,35 @@
+## Includes
+inc "bool.csaw";
+inc "random.csaw";
+
+## Main - Ghost Game
+main: number {
+
+    out("Ghost Game%n%n");
+
+    number still_running = true;
+    number score = 0;
+
+    while (still_running) {
+        number door_with_ghost = randomInt(1, 3);
+        out("There are three doors.%nThere's a ghost behind one of them.%nWhich one do you open?%n");
+        string door;
+        
+        while (door != "1" && door != "2" && door != "3")
+            door = in("1, 2 or 3? ");
+        
+        number door_number = door;
+
+        if (door_number == door_with_ghost) {
+            out("GHOST!%n");
+            still_running = false;
+        } else {
+            out("No one there!%nYou can go one room further.%n");
+            score++;
+        }
+    }
+
+    out("Run!%nGame over! Your score: %.0f%n", score);
+
+    ret 0;
+}

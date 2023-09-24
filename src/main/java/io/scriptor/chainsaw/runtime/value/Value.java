@@ -109,6 +109,31 @@ public abstract class Value {
         return true;
     }
 
+    public static Value cast(Environment env, Value value, Type type) {
+        if (value == null || type == null)
+            return null;
+
+        if (type.isString())
+            return new StringValue(env, value.toString());
+
+        if (value.getType().isString()) {
+            if (type.isNumber())
+                return new NumberValue(env, Double.parseDouble((String) value.getValue()));
+
+            if (type.isChar() && ((String) value.getValue()).length() == 1)
+                return new CharValue(env, ((String) value.getValue()).charAt(0));
+        }
+
+        if (value.getType().isChar()) {
+            if (type.isNumber())
+                return new NumberValue(env, ((Character) value.getValue()));
+        }
+
+        return Error.error("cannot cast value of type %s to type %s",
+                value.getType(),
+                type);
+    }
+
     public static boolean equals(Environment env, Value left, Value right) {
         return left.equals(right);
     }
