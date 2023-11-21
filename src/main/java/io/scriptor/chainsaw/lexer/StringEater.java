@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw;
+package io.scriptor.chainsaw.lexer;
 
 public class StringEater {
 

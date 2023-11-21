@@ -5,7 +5,7 @@ import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import io.scriptor.chainsaw.Error;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.value.Value;
 
@@ -90,6 +90,6 @@ public class NativeImplementation implements FunctionImplementation {
             return type.cast(value);
         }
 
-        return Error.error("you are a complete faaaailiure!");
+        return Util.error("you are a complete faaaailiure!");
     }
 }

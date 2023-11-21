@@ -1,4 +1,4 @@
-package io.scriptor.chainsaw;
+package io.scriptor.chainsaw.lexer;
 
 import java.util.Collections;
 import java.util.List;

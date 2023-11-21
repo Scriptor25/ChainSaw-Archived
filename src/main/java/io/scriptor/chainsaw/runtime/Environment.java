@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
-import io.scriptor.chainsaw.Error;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.runtime.function.Function;
 import io.scriptor.chainsaw.runtime.function.Pair;
 import io.scriptor.chainsaw.runtime.natives.NativesCollector;
@@ -68,14 +68,14 @@ public class Environment {
             if (mParent != null)
                 return mParent.getVariable(name);
             else
-                return Error.error("undefined variable '%s'", name);
+                return Util.error("undefined variable '%s'", name);
 
         return (V) mVariables.get(name);
     }
 
     public <V extends Value> V createVariable(String name, V value) {
         if (mVariables.containsKey(name))
-            return Error.error("variable '%s' already defined", name);
+            return Util.error("variable '%s' already defined", name);
 
         mVariables.put(name, value);
         return value;
@@ -86,10 +86,10 @@ public class Environment {
             if (mParent != null)
                 return mParent.setVariable(name, value);
             else
-                return Error.error("undefined variable '%s'", name);
+                return Util.error("undefined variable '%s'", name);
 
         if (!mVariables.get(name).getType().equals(value.getType()))
-            return Error.error("cannot assign value of type %s to variable '%s' (type %s)",
+            return Util.error("cannot assign value of type %s to variable '%s' (type %s)",
                     value.getType(),
                     name,
                     mVariables.get(name).getType());

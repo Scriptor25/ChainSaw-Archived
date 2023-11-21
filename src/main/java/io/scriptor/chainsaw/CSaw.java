@@ -1,9 +1,11 @@
 package io.scriptor.chainsaw;
 
-import io.scriptor.chainsaw.runtime.Interpreter;
-
 import java.io.File;
 import java.io.IOException;
+
+import io.scriptor.chainsaw.lexer.Lexer;
+import io.scriptor.chainsaw.parser.Parser;
+import io.scriptor.chainsaw.runtime.Interpreter;
 
 class CSaw {
 
@@ -53,7 +55,7 @@ class CSaw {
         if (args.length == 1) { // run file
 
             final var executionPath = new File(args[0]).getParent();
-            final var source = FileUtil.readFile(args[0]);
+            final var source = Util.readFile(args[0]);
 
             final var tokens = Lexer.tokenize(source);
             final var parser = new Parser(tokens);

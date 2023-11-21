@@ -3,7 +3,7 @@ package io.scriptor.chainsaw.runtime.value;
 import java.util.List;
 import java.util.Vector;
 
-import io.scriptor.chainsaw.Error;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.type.Type;
 
@@ -129,7 +129,7 @@ public abstract class Value {
                 return new NumberValue(env, ((Character) value.getValue()));
         }
 
-        return Error.error("cannot cast value of type %s to type %s",
+        return Util.error("cannot cast value of type %s to type %s",
                 value.getType(),
                 type);
     }
@@ -142,28 +142,28 @@ public abstract class Value {
         if (left.isNumber() && right.isNumber())
             return (double) left.getValue() < (double) right.getValue();
 
-        return Error.error("operator '<' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '<' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static boolean greater(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
             return (double) left.getValue() > (double) right.getValue();
 
-        return Error.error("operator '>' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '>' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static boolean lessEq(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
             return (double) left.getValue() <= (double) right.getValue();
 
-        return Error.error("operator '<=' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '<=' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static boolean greaterEq(Environment env, Value left, Value right) {
         if (left.isNumber() && right.isNumber())
             return (double) left.getValue() >= (double) right.getValue();
 
-        return Error.error("operator '>=' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '>=' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static Value add(Environment env, Value left, Value right, boolean assigning) {
@@ -188,7 +188,7 @@ public abstract class Value {
         if (func != null)
             return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
-        return Error.error("operator '+' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '+' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static Value sub(Environment env, Value left, Value right, boolean assigning) {
@@ -211,7 +211,7 @@ public abstract class Value {
         if (func != null)
             return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
-        return Error.error("operator '-' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '-' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static Value mul(Environment env, Value left, Value right, boolean assigning) {
@@ -234,7 +234,7 @@ public abstract class Value {
         if (func != null)
             return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
-        return Error.error("operator '*' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '*' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static Value div(Environment env, Value left, Value right, boolean assigning) {
@@ -257,7 +257,7 @@ public abstract class Value {
         if (func != null)
             return env.getInterpreter().evaluateFunction(thing, name, args.toArray(new Value[0]));
 
-        return Error.error("operator '/' not defined for types '%s' and '%s'", left.getType(), right.getType());
+        return Util.error("operator '/' not defined for types '%s' and '%s'", left.getType(), right.getType());
     }
 
     public static Value negate(Environment env, Value value) {
@@ -271,7 +271,7 @@ public abstract class Value {
         if (func != null)
             return env.getInterpreter().evaluateFunction(value, "-");
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
     public static Value not(Environment env, Value value) {
@@ -282,6 +282,6 @@ public abstract class Value {
         if (func != null)
             return env.getInterpreter().evaluateFunction(value, "!");
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 }

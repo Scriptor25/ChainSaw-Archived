@@ -1,8 +1,11 @@
-package io.scriptor.chainsaw;
+package io.scriptor.chainsaw.parser;
 
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.ast.Program;
 import io.scriptor.chainsaw.ast.expr.*;
 import io.scriptor.chainsaw.ast.stmt.*;
+import io.scriptor.chainsaw.lexer.Token;
+import io.scriptor.chainsaw.lexer.TokenType;
 
 import java.util.List;
 import java.util.Vector;
@@ -124,7 +127,7 @@ public class Parser {
 
     private static <T> T error(int line, String fmt, Object... args) {
         var msg = String.format(fmt, args);
-        return Error.error("at line %d: %s", line, msg);
+        return Util.error("at line %d: %s", line, msg);
     }
 
     public Param parseParam() {

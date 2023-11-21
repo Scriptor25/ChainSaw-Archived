@@ -1,6 +1,6 @@
 package io.scriptor.chainsaw.runtime.type;
 
-import io.scriptor.chainsaw.Error;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.value.*;
 
@@ -72,7 +72,7 @@ public abstract class Type {
         if (type != null)
             return type;
 
-        return Error.error("undefined type '%s'", str);
+        return Util.error("undefined type '%s'", str);
     }
 
     public static Type parseType(Environment env, Class<?> cls) {

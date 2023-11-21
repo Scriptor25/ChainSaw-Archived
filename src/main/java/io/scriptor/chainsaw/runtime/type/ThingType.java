@@ -1,6 +1,6 @@
 package io.scriptor.chainsaw.runtime.type;
 
-import io.scriptor.chainsaw.Error;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.runtime.Environment;
 import io.scriptor.chainsaw.runtime.value.ThingValue;
 import io.scriptor.chainsaw.runtime.value.Value;
@@ -52,7 +52,7 @@ public class ThingType extends Type {
             if (fields == null)
                 return type;
             if (!type.isOpaque())
-                return Error.error("Thing '%s' is not opaque", id);
+                return Util.error("Thing '%s' is not opaque", id);
 
             type.mFields = fields;
             return type;

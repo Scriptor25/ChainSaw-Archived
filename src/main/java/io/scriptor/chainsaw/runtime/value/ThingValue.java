@@ -1,6 +1,6 @@
 package io.scriptor.chainsaw.runtime.value;
 
-import io.scriptor.chainsaw.Error;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.runtime.type.ThingType;
 
 import java.util.Collections;
@@ -24,14 +24,14 @@ public class ThingValue extends Value {
     @SuppressWarnings("unchecked")
     public <V extends Value> V getField(String field) {
         if (!hasField(field))
-            return Error.error("Thing doesn't have field '%s'", field);
+            return Util.error("Thing doesn't have field '%s'", field);
         return (V) mFields.get(field);
     }
 
     @SuppressWarnings("unchecked")
     public <V extends Value> V setField(String field, V value) {
         if (!hasField(field))
-            return Error.error("Thing doesn't have field '%s'", field);
+            return Util.error("Thing doesn't have field '%s'", field);
         return (V) mFields.put(field, value);
     }
 

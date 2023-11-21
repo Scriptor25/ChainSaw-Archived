@@ -4,9 +4,14 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class FileUtil {
+public class Util {
 
-    private FileUtil() {
+    private Util() {
+    }
+
+    public static <T> T error(String fmt, Object... args) {
+        System.out.printf("Error: %s%n", String.format(fmt, args));
+        return null;
     }
 
     public static String readFile(String path) {

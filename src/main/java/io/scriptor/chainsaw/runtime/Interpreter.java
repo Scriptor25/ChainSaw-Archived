@@ -1,13 +1,12 @@
 package io.scriptor.chainsaw.runtime;
 
-import io.scriptor.chainsaw.Error;
-import io.scriptor.chainsaw.FileUtil;
-import io.scriptor.chainsaw.Lexer;
-import io.scriptor.chainsaw.Parser;
+import io.scriptor.chainsaw.Util;
 import io.scriptor.chainsaw.ast.Program;
 import io.scriptor.chainsaw.ast.expr.*;
 import io.scriptor.chainsaw.ast.stmt.*;
 import io.scriptor.chainsaw.lang.StdList;
+import io.scriptor.chainsaw.lexer.Lexer;
+import io.scriptor.chainsaw.parser.Parser;
 import io.scriptor.chainsaw.runtime.function.*;
 import io.scriptor.chainsaw.runtime.type.NativeType;
 import io.scriptor.chainsaw.runtime.type.ThingType;
@@ -49,12 +48,12 @@ public class Interpreter {
     public Value evaluateFunction(Value my, String name, Value... args) {
         var func = mEnv.getFunction(my, name, args);
         if (func == null)
-            return Error.error("undefined function '%s', %s%s", name,
+            return Util.error("undefined function '%s', %s%s", name,
                     Arrays.toString(Value.toTypeArray(args)),
                     my != null ? " -> " + my.getType().toString() : "");
 
         if (func.isOpaque())
-            return Error.error("function '%s', %s%s is opaque", name,
+            return Util.error("function '%s', %s%s is opaque", name,
                     Arrays.toString(Value.toTypeArray(args)),
                     my != null ? " -> " + my.getType().toString() : "");
 
@@ -85,18 +84,18 @@ public class Interpreter {
 
             if (func.isConstructor()) {
                 if (result != null && result.isReturn() && ((ReturnValue) result).isFrom(mEnv))
-                    return Error.error("function '%s', %s is a constructor, so it should not return anything!");
+                    return Util.error("function '%s', %s is a constructor, so it should not return anything!");
 
                 result = mEnv.getVariable("my");
             } else if (result != null && result.isReturn()) {
                 if (((ReturnValue) result).isReceiver(mEnv) && !result.getType().equals(func.getResultType()))
-                    return Error.error(
+                    return Util.error(
                             "function '%s', %s returns wrong data type: %s",
                             name,
                             Arrays.toString(Value.toTypeArray(args)),
                             result.getType());
             } else if (!func.getResultType().isVoid())
-                return Error.error(
+                return Util.error(
                         "return type of function '%s', %s is %s, but it doesn't return anything",
                         name,
                         Arrays.toString(Value.toTypeArray(args)),
@@ -166,7 +165,7 @@ public class Interpreter {
         if (stmt instanceof Expr)
             return evaluateExpr((Expr) stmt);
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
     public Value evaluateBodyStmt(BodyStmt stmt) {
@@ -224,7 +223,7 @@ public class Interpreter {
                 impl);
 
         if (func == null)
-            return Error.error("failed to create function or set new function body for name '%s'", stmt.name);
+            return Util.error("failed to create function or set new function body for name '%s'", stmt.name);
 
         return null;
     }
@@ -244,7 +243,7 @@ public class Interpreter {
 
     public Value evaluateIncStmt(IncStmt stmt) {
         var file = new File(mExecutionPath, stmt.path);
-        var source = FileUtil.readFile(mExecutionPath == null
+        var source = Util.readFile(mExecutionPath == null
                 ? stmt.path
                 : file.getPath());
 
@@ -269,7 +268,7 @@ public class Interpreter {
     }
 
     public Value evaluateSwitchStmt(SwitchStmt stmt) {
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
     public Value evaluateThingStmt(ThingStmt stmt) {
@@ -337,7 +336,7 @@ public class Interpreter {
         if (expr instanceof UnaryExpr)
             return evaluateUnaryExpr((UnaryExpr) expr);
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
     public Value evaluateAssignmentExpr(AssignmentExpr expr) {
@@ -348,7 +347,7 @@ public class Interpreter {
                     .setField(((IdentifierExpr) ((MemberExpr) expr.assignee).member).value,
                             Value.extract(evaluateExpr(expr.value)));
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
     public Value evaluateBinaryExpr(BinaryExpr expr) {
@@ -385,7 +384,7 @@ public class Interpreter {
                 return Value.div(mEnv, left, right, expr.assigning);
         }
 
-        return Error.error("operator '%s' is undefined for types '%s' and '%s'",
+        return Util.error("operator '%s' is undefined for types '%s' and '%s'",
                 expr.operator,
                 left.getType(),
                 right.getType());
@@ -403,7 +402,7 @@ public class Interpreter {
             return evaluateFunction(Value.extract(evaluateExpr(((MemberExpr) expr.function).thing)),
                     ((IdentifierExpr) ((MemberExpr) expr.function).member).value, args);
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
     public Value evaluateConditionExpr(ConditionExpr expr) {
@@ -424,7 +423,7 @@ public class Interpreter {
                 return new StringValue(mEnv, expr.value);
         }
 
-        return Error.error("undefined type '%s', value '%s'", expr.type, expr.value);
+        return Util.error("undefined type '%s', value '%s'", expr.type, expr.value);
     }
 
     public Value evaluateIdentifierExpr(IdentifierExpr expr) {
@@ -447,7 +446,7 @@ public class Interpreter {
                 return Value.not(mEnv, value);
         }
 
-        return Error.error("not yet implemented");
+        return Util.error("not yet implemented");
     }
 
 }
